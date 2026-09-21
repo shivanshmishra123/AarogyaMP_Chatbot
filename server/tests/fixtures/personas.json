@@ -1,0 +1,138 @@
+{
+  "_comment": "AarogyaMP — Synthetic test personas (Reference §16). NEVER use real patient data. These are fabricated for development/testing only.",
+  "_personas_required": ["low_risk", "moderate_risk", "high_risk", "emergency_vitals", "emergency_keyword", "invalid_vitals"],
+
+  "personas": [
+    {
+      "id": "persona_low",
+      "label": "LOW risk — minor cold/fatigue",
+      "input_mode": "text",
+      "raw_text": "I have a mild runny nose and feeling a bit tired since yesterday. No fever, no chest pain.",
+      "duration_text": "1 day",
+      "vitals": {
+        "temperature_f": 98.6,
+        "heart_rate_bpm": 72,
+        "systolic_bp": 118,
+        "diastolic_bp": 76,
+        "spo2_pct": 98,
+        "age": 28
+      },
+      "expected": {
+        "is_emergency": false,
+        "risk_level_max": "LOW",
+        "ai_status_should_not_be": "skipped"
+      }
+    },
+
+    {
+      "id": "persona_moderate",
+      "label": "MODERATE risk — fever + body pain 2 days",
+      "input_mode": "text",
+      "raw_text": "I have fever since two days, headache and body pain. Feeling weak.",
+      "duration_text": "2 days",
+      "vitals": {
+        "temperature_f": 102.0,
+        "heart_rate_bpm": 98,
+        "systolic_bp": 130,
+        "diastolic_bp": 85,
+        "spo2_pct": 96,
+        "age": 42
+      },
+      "expected": {
+        "is_emergency": false,
+        "risk_level": "MODERATE",
+        "recommended_specialty": "General Physician",
+        "ai_status_should_not_be": "skipped"
+      }
+    },
+
+    {
+      "id": "persona_high",
+      "label": "HIGH risk — chest tightness + breathlessness",
+      "input_mode": "text",
+      "raw_text": "I have chest tightness and feeling breathless when walking. Started 3 hours ago. I am also sweating a lot.",
+      "duration_text": "3 hours",
+      "vitals": {
+        "temperature_f": 99.1,
+        "heart_rate_bpm": 118,
+        "systolic_bp": 155,
+        "diastolic_bp": 95,
+        "spo2_pct": 93,
+        "age": 55
+      },
+      "expected": {
+        "is_emergency": false,
+        "risk_level": "HIGH",
+        "ai_status_should_not_be": "skipped",
+        "_note": "Rule engine should NOT flag this as emergency (thresholds are clinical decisions). AI should return HIGH."
+      }
+    },
+
+    {
+      "id": "persona_emergency_vitals",
+      "label": "EMERGENCY — vitals-triggered (SpO2 critical)",
+      "input_mode": "text",
+      "raw_text": "I am having difficulty breathing and feel very confused. I feel faint.",
+      "duration_text": "30 minutes",
+      "vitals": {
+        "temperature_f": 103.5,
+        "heart_rate_bpm": 140,
+        "systolic_bp": 85,
+        "diastolic_bp": 50,
+        "spo2_pct": 85,
+        "age": 67
+      },
+      "expected": {
+        "is_emergency": true,
+        "risk_level": "EMERGENCY",
+        "ai_status": "skipped",
+        "emergency_triggers_should_include": "EMG_VITALS_CRITICAL",
+        "_note": "SpO2 85 + BP 85/50 + HR 140 should trip EMG_VITALS_CRITICAL once clinician thresholds are set."
+      }
+    },
+
+    {
+      "id": "persona_emergency_keyword",
+      "label": "EMERGENCY — keyword-triggered (severe chest pain)",
+      "input_mode": "text",
+      "raw_text": "I am having severe chest pain radiating to my left arm. I cannot breathe properly. This started 10 minutes ago.",
+      "duration_text": "10 minutes",
+      "vitals": {
+        "temperature_f": 98.8,
+        "heart_rate_bpm": 110,
+        "systolic_bp": 160,
+        "diastolic_bp": 100,
+        "spo2_pct": 94,
+        "age": 60
+      },
+      "expected": {
+        "is_emergency": true,
+        "risk_level": "EMERGENCY",
+        "ai_status": "skipped",
+        "emergency_triggers_should_include": "EMG_KEYWORD_MATCH",
+        "_note": "Severe chest pain + can't breathe should trip EMG_KEYWORD_MATCH once clinician keyword list is set."
+      }
+    },
+
+    {
+      "id": "persona_invalid_vitals",
+      "label": "INVALID vitals — obviously-bad values",
+      "input_mode": "text",
+      "raw_text": "I have a headache.",
+      "duration_text": "1 hour",
+      "vitals": {
+        "temperature_f": 0,
+        "heart_rate_bpm": 0,
+        "systolic_bp": 300,
+        "diastolic_bp": 10,
+        "spo2_pct": 150,
+        "age": 30
+      },
+      "expected": {
+        "flagged_invalid_fields": ["temperature_f", "heart_rate_bpm", "systolic_bp", "diastolic_bp", "spo2_pct"],
+        "pipeline_should_stop_at": "Stage 2 (vitals_validator)",
+        "_note": "Validator must catch these before they reach the rule engine or LLM."
+      }
+    }
+  ]
+}

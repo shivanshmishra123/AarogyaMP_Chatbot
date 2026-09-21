@@ -1,0 +1,82 @@
+"""
+AarogyaMP — Emergency Rule Engine Tests (Milestone 0 stub)
+Person B owns this file.
+
+⚠️  These tests MUST pass before any edit to emergency_rules.yaml ships.
+    Run: pytest server/tests/test_emergency_rule_engine.py
+
+Test coverage required:
+  - Every emergency persona in fixtures/personas.json → is_emergency=True
+  - Every non-emergency persona → is_emergency=False
+  - Emergency path returns in under 1 second (no LLM call)
+  - Rule engine works even if LLM is unavailable (no import from ai_symptom_engine)
+
+TODO (M1 — Person B): Implement all tests once rule engine is built.
+"""
+import json
+import time
+from pathlib import Path
+
+import pytest
+
+# from app.services.emergency_rule_engine import run  # uncomment when M1 implemented
+
+FIXTURES_PATH = Path(__file__).parent / "fixtures" / "personas.json"
+
+
+@pytest.fixture
+def personas():
+    with open(FIXTURES_PATH) as f:
+        data = json.load(f)
+    return {p["id"]: p for p in data["personas"]}
+
+
+# ── Emergency personas should be flagged ──────────────────────
+
+@pytest.mark.skip(reason="M1: emergency_rule_engine not yet implemented")
+def test_emergency_vitals_is_flagged(personas):
+    persona = personas["persona_emergency_vitals"]
+    v = persona["vitals"]
+    # result = run(raw_text=persona["raw_text"], **{k: v[k] for k in ["temperature_f", "heart_rate_bpm", "systolic_bp", "diastolic_bp", "spo2_pct"]})
+    # assert result.is_emergency is True
+    # assert any(t["rule_id"] == "EMG_VITALS_CRITICAL" for t in result.triggers)
+    pass
+
+
+@pytest.mark.skip(reason="M1: emergency_rule_engine not yet implemented")
+def test_emergency_keyword_is_flagged(personas):
+    persona = personas["persona_emergency_keyword"]
+    # result = run(raw_text=persona["raw_text"])
+    # assert result.is_emergency is True
+    # assert any(t["rule_id"] == "EMG_KEYWORD_MATCH" for t in result.triggers)
+    pass
+
+
+# ── Non-emergency personas should NOT be flagged ──────────────
+
+@pytest.mark.skip(reason="M1: emergency_rule_engine not yet implemented")
+def test_low_risk_not_emergency(personas):
+    persona = personas["persona_low"]
+    # result = run(raw_text=persona["raw_text"], ...)
+    # assert result.is_emergency is False
+    pass
+
+
+@pytest.mark.skip(reason="M1: emergency_rule_engine not yet implemented")
+def test_moderate_risk_not_emergency(personas):
+    persona = personas["persona_moderate"]
+    # result = run(...)
+    # assert result.is_emergency is False
+    pass
+
+
+# ── Performance: must be fast (no LLM) ───────────────────────
+
+@pytest.mark.skip(reason="M1: emergency_rule_engine not yet implemented")
+def test_emergency_detection_is_fast(personas):
+    """Emergency check must complete in well under 1 second — no I/O allowed."""
+    persona = personas["persona_emergency_vitals"]
+    start = time.time()
+    # run(raw_text=persona["raw_text"], ...)
+    elapsed = time.time() - start
+    assert elapsed < 0.5, f"Emergency rule engine took {elapsed:.2f}s — too slow"

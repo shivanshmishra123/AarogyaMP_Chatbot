@@ -1,0 +1,53 @@
+# AarogyaMP — Specialty Map
+# Source: Reference doc §7
+# Owned by: Person B
+#
+# The AI layer (ai_symptom_engine.py) is asked to pick a specialty
+# from THIS FIXED LIST only — it does not get to invent specialties.
+# specialty_mapper.py cross-checks the LLM's pick against this list.
+#
+# To add a specialty: update this file + specialty_mapper.py + notify Person C
+# to update mock data + the frontend filter options.
+
+specialty_rules:
+  - keywords: [fever, cough, cold, body pain, general weakness, fatigue, flu, viral]
+    specialty: General Physician
+
+  - keywords: [chest pain, palpitations, high blood pressure, hypertension, heart, irregular heartbeat]
+    specialty: Cardiologist
+
+  - keywords: [rash, itching, skin, acne, eczema, psoriasis, hives, allergic reaction]
+    specialty: Dermatologist
+
+  - keywords: [child, infant, pediatric, baby, toddler, newborn, kids]
+    specialty: Pediatrician
+
+  - keywords: [ear pain, throat, sinus, hearing, tonsil, nasal, nose, runny nose, sneezing]
+    specialty: ENT Specialist
+
+  - keywords: [joint pain, fracture, back pain, bone, knee, shoulder, spine, arthritis, muscle]
+    specialty: Orthopedic Specialist
+
+  - keywords: [headache, numbness, seizure, dizziness, migraine, tremor, memory, paralysis, stroke]
+    specialty: Neurologist
+
+  - keywords: [anxiety, depression, sleep, mood, stress, mental health, panic, phobia, insomnia]
+    specialty: Mental Health Professional
+
+  - keywords: [stomach pain, abdominal, nausea, vomiting, diarrhea, constipation, digestion, gastric, acid reflux]
+    specialty: Gastroenterologist
+
+  - keywords: [urination, kidney, urine, bladder, UTI, renal, prostate]
+    specialty: Urologist
+
+  - keywords: [diabetes, thyroid, hormones, endocrine, blood sugar, weight gain, weight loss]
+    specialty: Endocrinologist
+
+  - keywords: [eye, vision, blurry, glasses, conjunctivitis, eye pain, cataract]
+    specialty: Ophthalmologist
+
+  - keywords: [pregnancy, gynecology, menstrual, periods, ovary, uterus, vaginal, obstetrics]
+    specialty: Gynecologist / Obstetrician
+
+# Fallback specialty (used by specialty_mapper.py if nothing matches or LLM pick not in list)
+default_specialty: General Physician

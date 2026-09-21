@@ -1,0 +1,48 @@
+# AarogyaMP — Emergency Rules
+#
+# ⚠️  SAFETY-CRITICAL FILE — READ AGENTS.md RULE 4 BEFORE EDITING ⚠️
+#
+# The actual keyword lists, vital-sign thresholds, and combination logic
+# MUST be authored or signed off by a qualified clinician before this ships.
+# Do NOT invent or guess values — engineering staff are not qualified to set
+# medical emergency thresholds. Flag the requirement; wait for clinical sign-off.
+#
+# This file defines the SHAPE of the rules. Thresholds are marked as
+# PLACEHOLDER — they must be replaced with clinician-approved values.
+#
+# Owned by: Person B
+# Every change here requires:
+#   1. Clinical sign-off noted in the commit message or linked review
+#   2. test_emergency_rule_engine.py passing against all personas in fixtures/
+#   3. DEVLOG entry with what changed and why
+
+emergency_rules:
+
+  - id: EMG_VITALS_CRITICAL
+    description: "Vitals fall outside clinician-approved emergency thresholds"
+    condition: vitals_outside_safe_range
+    # PLACEHOLDER thresholds — DO NOT USE IN PRODUCTION WITHOUT CLINICAL SIGN-OFF
+    thresholds:
+      temperature_f_max: null        # e.g. > 104 — needs clinician approval
+      temperature_f_min: null        # e.g. < 95 — needs clinician approval
+      heart_rate_bpm_max: null       # e.g. > 150 — needs clinician approval
+      heart_rate_bpm_min: null       # e.g. < 40 — needs clinician approval
+      systolic_bp_max: null          # e.g. > 180 — needs clinician approval
+      systolic_bp_min: null          # e.g. < 70 — needs clinician approval
+      spo2_pct_min: null             # e.g. < 90 — needs clinician approval
+
+  - id: EMG_KEYWORD_MATCH
+    description: "Patient's own words match a clinician-approved emergency symptom list"
+    condition: raw_text_matches_emergency_keywords
+    # PLACEHOLDER keyword list — DO NOT USE IN PRODUCTION WITHOUT CLINICAL SIGN-OFF
+    # The exact list must be owned by a clinician, not invented in code.
+    # Examples of what might be included (not exhaustive, not clinically validated here):
+    #   severe chest pain, can't breathe, difficulty breathing, unconscious,
+    #   stroke symptoms, severe bleeding, poisoning, overdose — etc.
+    keywords: []   # ← clinician must populate this list
+
+  - id: EMG_COMBINATION
+    description: "A specific combination of symptoms + vitals meets an emergency pattern"
+    condition: symptom_vitals_combo_match
+    # PLACEHOLDER — combination rules require clinician design and sign-off
+    combinations: []   # ← clinician must define these

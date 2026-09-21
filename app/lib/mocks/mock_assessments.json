@@ -1,0 +1,78 @@
+{
+  "_comment": "Mock assessment responses matching Reference §11 API shape exactly. One per persona in personas.json.",
+
+  "persona_low": {
+    "assessment_id": "mock-assess-low-001",
+    "is_emergency": false,
+    "risk_level": "LOW",
+    "emergency_triggers": null,
+    "possible_conditions": [
+      {"name": "Common cold (viral rhinitis)", "likelihood": "high"},
+      {"name": "Mild fatigue / stress", "likelihood": "medium"}
+    ],
+    "recommended_specialty": "General Physician",
+    "recommendation_text": "Your symptoms appear mild and self-limiting. Rest, stay hydrated, and monitor. Consult a doctor if symptoms worsen or persist beyond 5–7 days.",
+    "ai_status": "ok",
+    "_disclaimer": "This is an AI-generated possible-conditions read, not a medical diagnosis. A doctor makes the final call."
+  },
+
+  "persona_moderate": {
+    "assessment_id": "mock-assess-mod-001",
+    "is_emergency": false,
+    "risk_level": "MODERATE",
+    "emergency_triggers": null,
+    "possible_conditions": [
+      {"name": "Viral/febrile illness", "likelihood": "high"},
+      {"name": "Influenza-like illness", "likelihood": "medium"},
+      {"name": "Dengue fever (if in endemic area)", "likelihood": "low"}
+    ],
+    "recommended_specialty": "General Physician",
+    "recommendation_text": "Consult a physician within 24 hours. Seek urgent care immediately if you develop difficulty breathing, chest pain, severe headache, or confusion.",
+    "ai_status": "ok",
+    "_disclaimer": "This is an AI-generated possible-conditions read, not a medical diagnosis. A doctor makes the final call."
+  },
+
+  "persona_high": {
+    "assessment_id": "mock-assess-high-001",
+    "is_emergency": false,
+    "risk_level": "HIGH",
+    "emergency_triggers": null,
+    "possible_conditions": [
+      {"name": "Acute coronary syndrome (possible)", "likelihood": "medium"},
+      {"name": "Pulmonary embolism (possible)", "likelihood": "low"},
+      {"name": "Hypertensive urgency", "likelihood": "medium"}
+    ],
+    "recommended_specialty": "Cardiologist",
+    "recommendation_text": "Your symptoms require urgent medical evaluation — seek care today, do not wait. If chest tightness worsens, breathing becomes severely difficult, or you experience arm/jaw pain, call emergency services immediately.",
+    "ai_status": "ok",
+    "_disclaimer": "This is an AI-generated possible-conditions read, not a medical diagnosis. A doctor makes the final call."
+  },
+
+  "persona_emergency_vitals": {
+    "assessment_id": "mock-assess-emg-v-001",
+    "is_emergency": true,
+    "risk_level": "EMERGENCY",
+    "emergency_triggers": [
+      {"rule_id": "EMG_VITALS_CRITICAL", "description": "Vitals indicate a potential life-threatening emergency (low SpO₂, low blood pressure, high heart rate)."}
+    ],
+    "possible_conditions": null,
+    "recommended_specialty": null,
+    "recommendation_text": "Seek immediate emergency medical care. Call emergency services or go to the nearest emergency room NOW. Do not wait for a chat response.",
+    "ai_status": "skipped",
+    "_disclaimer": "Emergency guidance — this assessment was made by a rule-based safety system, not AI. Call emergency services immediately."
+  },
+
+  "persona_emergency_keyword": {
+    "assessment_id": "mock-assess-emg-k-001",
+    "is_emergency": true,
+    "risk_level": "EMERGENCY",
+    "emergency_triggers": [
+      {"rule_id": "EMG_KEYWORD_MATCH", "description": "Your description includes symptoms that require immediate emergency care (severe chest pain, difficulty breathing)."}
+    ],
+    "possible_conditions": null,
+    "recommended_specialty": null,
+    "recommendation_text": "Seek immediate emergency medical care. Call emergency services or go to the nearest emergency room NOW. Do not wait for a chat response.",
+    "ai_status": "skipped",
+    "_disclaimer": "Emergency guidance — this assessment was made by a rule-based safety system, not AI. Call emergency services immediately."
+  }
+}

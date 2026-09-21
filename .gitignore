@@ -1,0 +1,63 @@
+# =============================================================
+# AarogyaMP — .gitignore
+# =============================================================
+
+# ── Environment & secrets ──────────────────────────────────────
+.env
+*.env.local
+*.env.*.local
+
+# ── Python / Server ───────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.log
+
+# ── Server storage (uploaded files — never commit patient data) ─
+server/storage/voice_messages/*
+server/storage/chat_attachments/*
+!server/storage/voice_messages/.gitkeep
+!server/storage/chat_attachments/.gitkeep
+
+# ── Alembic ───────────────────────────────────────────────────
+# Keep alembic directory but ignore temp files
+*.pyc
+
+# ── Flutter / Dart ────────────────────────────────────────────
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/.packages
+app/build/
+app/.pub-cache/
+app/.pub/
+app/ios/Pods/
+app/ios/.symlinks/
+app/android/.gradle/
+app/android/local.properties
+app/android/key.properties
+app/android/app/google-services.json  # use --dart-define or env for Firebase config
+app/ios/Runner/GoogleService-Info.plist
+*.iml
+
+# ── IDE ───────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Docker ────────────────────────────────────────────────────
+# docker-compose.override.yml is OK to gitignore if local only
+docker-compose.override.yml

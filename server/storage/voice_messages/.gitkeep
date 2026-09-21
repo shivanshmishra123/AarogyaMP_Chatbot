@@ -1,0 +1,2 @@
+# Storage directories — contents gitignored, structure tracked
+# See .gitignore: server/storage/voice_messages/* and server/storage/chat_attachments/*
