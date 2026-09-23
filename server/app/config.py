@@ -2,7 +2,10 @@
 AarogyaMP — Configuration (pydantic-settings)
 Person A owns this file.
 """
+from pathlib import Path
 from pydantic_settings import BaseSettings
+
+_ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 
 
 class Settings(BaseSettings):
@@ -39,7 +42,7 @@ class Settings(BaseSettings):
     ADMIN_OPS_TOKEN: str = "changeme"
 
     class Config:
-        env_file = ".env"
+        env_file = _ENV_PATH
         env_file_encoding = "utf-8"
 
 

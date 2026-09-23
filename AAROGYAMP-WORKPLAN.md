@@ -103,8 +103,8 @@ There's no fixed hour budget — move to the next milestone when the previous on
 - [ ] Commit `app/lib/mocks/` — mock assessment responses (one per persona above) + a mock doctor directory (5–10 synthetic verified doctors across specialties)
 
 **Person A:**
-- [ ] Scaffold `server/app/` per Reference §4; `docker compose up -d postgres`; `uvicorn app.main:app --reload` serves `GET /health`
-- [ ] `models.py` + first Alembic migration for all tables in Reference §6
+- [x] Scaffold `server/app/` per Reference §4; database setup; `uvicorn app.main:app --reload` serves `GET /health`
+- [x] `models.py` + table initialization for all tables in Reference §6
 
 **Person B:**
 - [ ] Get an LLM provider working end-to-end for a throwaway prompt (pick hosted or local per Reference §15 — this is a real decision to make now, not defer)
@@ -122,10 +122,10 @@ There's no fixed hour budget — move to the next milestone when the previous on
 ### MILESTONE 1 — Independent Cores
 
 **Person A:**
-- [ ] Auth: register/login, JWT issue/verify, role-based route guards (patient vs doctor)
-- [ ] Doctor search: `GET /api/doctors` with specialty/distance/verified filters against seeded synthetic doctor data
-- [ ] Consultation creation + WebSocket chat (`/ws/chat/{consultation_id}`), persisted `ChatMessage` rows
-- [ ] `GET /api/doctor/queue` for the doctor dashboard
+- [x] Auth: register/login, JWT issue/verify, role-based route guards (patient vs doctor)
+- [x] Doctor search: `GET /api/doctors` with specialty/distance/verified filters against seeded synthetic doctor data
+- [x] Consultation creation + WebSocket chat (`/ws/chat/{consultation_id}`), persisted `ChatMessage` rows
+- [x] `GET /api/doctor/queue` for the doctor dashboard
 
 **Person B:**
 - [ ] `emergency_rule_engine.py` against `emergency_rules.yaml` — deterministic, unit-tested against every persona in `personas.json`, especially the two emergency ones

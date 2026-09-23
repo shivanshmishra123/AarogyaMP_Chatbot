@@ -28,6 +28,8 @@ server/storage/voice_messages/*
 server/storage/chat_attachments/*
 !server/storage/voice_messages/.gitkeep
 !server/storage/chat_attachments/.gitkeep
+*.db
+storage/
 
 # ── Alembic ───────────────────────────────────────────────────
 # Keep alembic directory but ignore temp files

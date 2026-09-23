@@ -4,6 +4,49 @@
 
 ---
 
+## 2026-09-23 — Milestone 1: Backend Core Implementation
+
+**Who:** Person A (Backend Core) on branch `shivansh`.
+
+**What was done:**
+- Created and checked out track branch `shivansh`.
+- Added `server/.env` and updated `server/app/config.py` and `database.py` with multi-environment support (local SQLite for fast standalone testing & migrations, PostgreSQL for Docker production).
+- Created `server/scripts/seed_doctors.py` to seed synthetic doctors from `app/lib/mocks/mock_doctors.json` into the DB.
+- Implemented `server/app/auth.py`:
+  - Direct `bcrypt` password hashing (`hash_password`, `verify_password`).
+  - PyJWT token generation (`create_access_token`, `create_refresh_token`, `verify_token`).
+  - Dependency guards: `get_current_user`, `require_patient`, `require_doctor`.
+- Implemented `server/app/routers/auth.py`:
+  - `POST /api/auth/register` (handles patient and doctor registration).
+  - `POST /api/auth/login` (authenticates via phone + password, issues JWT tokens).
+- Implemented `server/app/services/doctor_search.py` and `server/app/routers/doctors.py`:
+  - Haversine distance calculation in kilometers.
+  - Server-side filter ensuring only `verification_status == "verified"` doctors are returned.
+  - Distance, radius, and specialty filtering (`GET /api/doctors`).
+- Implemented `server/app/routers/admin.py`:
+  - `POST /api/admin/doctors/{doctor_id}/verify` gated by `X-Admin-Ops-Token`.
+- Implemented `server/app/routers/consultations.py`:
+  - `POST /api/consultations` (starts consultations).
+  - `GET /api/consultations/{id}/messages` (paginated chat message history).
+  - `GET /api/doctor/queue` (doctor dashboard patient queue with linked symptom report and AI assessment data).
+  - `WS /ws/chat/{consultation_id}` (bidirectional WebSocket chat with room management, JWT auth, and `ChatMessage` DB persistence).
+- Updated `server/app/main.py` with lifespan table creation and router mounting.
+- Added comprehensive automated test suite `server/tests/test_person_a_m1.py`:
+  - Ran `pytest server/tests/test_person_a_m1.py -v` — all 7 tests PASSED.
+
+**Gotchas / notes for next session:**
+- Python 3.14 + bcrypt 5.x has a known compatibility bug with `passlib`'s backend detector; direct `bcrypt` hashing is used in `auth.py` and `seed_doctors.py`.
+- WebSocket chat endpoint is exposed at `/ws/chat/{consultation_id}` (and `/api/ws/chat/{consultation_id}` for convenience); clients pass `?token=<access_token>` in the query string or send an initial auth frame.
+- Person B's assessments router (`/api/assessments`) can now seamlessly link consultations via `symptom_report_id`.
+
+**Milestone 1 Person A exit criteria status:**
+- [x] Auth: register/login, JWT issue/verify, role-based route guards (patient vs doctor)
+- [x] Doctor search: GET /api/doctors with specialty/distance/verified filters against seeded synthetic doctor data
+- [x] Consultation creation + WebSocket chat (/ws/chat/{consultation_id}), persisted ChatMessage rows
+- [x] GET /api/doctor/queue for the doctor dashboard
+
+---
+
 ## 2026-09-21 — Milestone 0: Repo & Scaffold Setup
 
 **Who:** vedantdadhich (Person C / App) setting up the repo for all three tracks.
