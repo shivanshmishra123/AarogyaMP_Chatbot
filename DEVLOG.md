@@ -4,6 +4,85 @@
 
 ---
 
+## 2026-09-25 — Milestone 2: Backend Doctor Loop (Person A)
+
+**Who:** Person A (Backend Core) on branch `shivansh`.
+
+**What was done:**
+
+### 1. Doctor Onboarding / Verification Flow (`server/app/routers/admin.py`)
+Enhanced admin router with full onboarding lifecycle:
+- `POST /api/admin/doctors/{id}/verify` — approve (idempotent, logs, no-ops if already verified)
+- `POST /api/admin/doctors/{id}/reject` — reject with optional reason string (logged for audit)
+- `POST /api/admin/doctors/{id}/reset` — revert verified/rejected → pending (for correcting mistakes)
+- `GET  /api/admin/doctors/pending` — list all pending applications needing action
+- `GET  /api/admin/doctors?verification_status=` — full list with optional status filter
+- Consultation creation now enforces `verification_status == "verified"` — 403 returned for unverified doctors, defense-in-depth over client-side checks alone.
+
+### 2. Push Notifications (`server/app/services/notifications.py`)
+Implemented FCM Legacy HTTP API integration (fire-and-forget pattern):
+- `send_new_message_notification(doctor_id, patient_name, preview)` — patient → doctor push
+- `send_queue_notification(doctor_id, patient_name)` — new patient in queue → doctor push
+- `send_doctor_responded_notification(patient_id, doctor_name, preview)` — doctor reply → patient push
+- In-process FCM token store (`_doctor_fcm_tokens`, `_patient_fcm_tokens` dicts) mirrors DB-backed pattern for easy swap at M4
+- All errors caught and logged; push failure never propagates up to break a chat message
+
+### 3. Device Token Registration (`server/app/main.py`)
+New endpoint `POST /api/devices/register` (JWT auth required, both roles):
+- App calls this on login and when OS rotates FCM token
+- Routes to `register_doctor_token` or `register_patient_token` based on JWT role
+
+### 4. Cursor-based Chat Pagination (`server/app/routers/consultations.py`)
+Rewrote `GET /api/consultations/{id}/messages` with proper cursor-based pagination:
+- `?before=<message_id>` returns messages strictly older than that message (chronologically ordered)
+- No cursor = most recent `limit` messages (chronological order)
+- Implements the Reference §14 WebSocket reconnect pattern exactly: re-fetch since last known ID before resuming WS
+- 400 returned on invalid/nonexistent cursor ID
+
+### 5. Consultation Close (`server/app/routers/consultations.py`)
+New `POST /api/consultations/{id}/close` (doctor-only):
+- Sets `status = "closed"`, persists `ended_at` timestamp
+- Closed consultations block WS reconnect (clients get `{"error": "consultation_closed"}` frame)
+- Move-to-history flow on the app side can now be driven by this endpoint
+
+### 6. WebSocket improvements
+- Bidirectional push notifications (doctor reply → patient, patient message → doctor)
+- Error frames sent back to client on invalid message format (instead of silent drop)
+- Closed-consultation guard at WS connect time
+
+**Tests: `server/tests/test_person_a_m2.py` — 18/18 PASSED**
+
+```
+server/tests/test_person_a_m2.py::test_admin_verify_doctor_success PASSED
+server/tests/test_person_a_m2.py::test_admin_verify_idempotent PASSED
+server/tests/test_person_a_m2.py::test_admin_reject_doctor PASSED
+server/tests/test_person_a_m2.py::test_admin_reset_doctor PASSED
+server/tests/test_person_a_m2.py::test_admin_list_pending PASSED
+server/tests/test_person_a_m2.py::test_admin_bad_token_forbidden PASSED
+server/tests/test_person_a_m2.py::test_admin_verify_nonexistent_doctor PASSED
+server/tests/test_person_a_m2.py::test_consultation_blocked_for_unverified_doctor PASSED
+server/tests/test_person_a_m2.py::test_consultation_allowed_for_verified_doctor PASSED
+server/tests/test_person_a_m2.py::test_get_messages_empty PASSED
+server/tests/test_person_a_m2.py::test_get_messages_limit PASSED
+server/tests/test_person_a_m2.py::test_get_messages_cursor_pagination PASSED
+server/tests/test_person_a_m2.py::test_get_messages_bad_cursor PASSED
+server/tests/test_person_a_m2.py::test_close_consultation_as_doctor PASSED
+server/tests/test_person_a_m2.py::test_close_consultation_as_patient_forbidden PASSED
+server/tests/test_person_a_m2.py::test_register_device_token_patient PASSED
+server/tests/test_person_a_m2.py::test_register_device_token_doctor PASSED
+server/tests/test_person_a_m2.py::test_register_device_token_unauthenticated PASSED
+==================== 18 passed in 12.85s =====================
+```
+
+**Gotchas / notes for next session:**
+- FCM token store is in-process (lost on server restart). For M3/M4, add `fcm_token` column to `Doctor` and `Patient` models (or a separate `DeviceToken` table per session) and populate on `/api/devices/register`.
+- The FCM Legacy HTTP API (`https://fcm.googleapis.com/fcm/send`) will be deprecated by Google — plan to migrate to FCM HTTP v1 API (uses service account JSON, not server key) at M4.
+- `httpx` is already in `requirements.txt` — no new dependency added.
+- `datetime.utcnow()` deprecation warnings exist (Python 3.14 prefers timezone-aware datetimes). Safe to defer to M3 hardening pass — functional impact is zero for now.
+- Swagger UI at `http://localhost:8000/docs` shows all new endpoints under `Admin`, `Consultations`, and `Devices` tags.
+
+---
+
 ## 2026-09-23 — Milestone 1: Backend Core Implementation
 
 **Who:** Person A (Backend Core) on branch `shivansh`.
