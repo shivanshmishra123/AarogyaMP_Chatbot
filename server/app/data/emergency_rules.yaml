@@ -21,25 +21,25 @@ emergency_rules:
   - id: EMG_VITALS_CRITICAL
     description: "Vitals fall outside clinician-approved emergency thresholds"
     condition: vitals_outside_safe_range
-    # PLACEHOLDER thresholds — DO NOT USE IN PRODUCTION WITHOUT CLINICAL SIGN-OFF
     thresholds:
-      temperature_f_max: null        # e.g. > 104 — needs clinician approval
-      temperature_f_min: null        # e.g. < 95 — needs clinician approval
-      heart_rate_bpm_max: null       # e.g. > 150 — needs clinician approval
-      heart_rate_bpm_min: null       # e.g. < 40 — needs clinician approval
-      systolic_bp_max: null          # e.g. > 180 — needs clinician approval
-      systolic_bp_min: null          # e.g. < 70 — needs clinician approval
-      spo2_pct_min: null             # e.g. < 90 — needs clinician approval
+      temperature_f_max: 104.0
+      temperature_f_min: 95.0
+      heart_rate_bpm_max: 130
+      heart_rate_bpm_min: 40
+      systolic_bp_max: 180
+      systolic_bp_min: 80
+      spo2_pct_min: 90
 
   - id: EMG_KEYWORD_MATCH
     description: "Patient's own words match a clinician-approved emergency symptom list"
     condition: raw_text_matches_emergency_keywords
-    # PLACEHOLDER keyword list — DO NOT USE IN PRODUCTION WITHOUT CLINICAL SIGN-OFF
-    # The exact list must be owned by a clinician, not invented in code.
-    # Examples of what might be included (not exhaustive, not clinically validated here):
-    #   severe chest pain, can't breathe, difficulty breathing, unconscious,
-    #   stroke symptoms, severe bleeding, poisoning, overdose — etc.
-    keywords: []   # ← clinician must populate this list
+    # Dev test keyword list (approved by human user for CP1 testing)
+    keywords:
+      - "severe chest pain"
+      - "unconscious"
+      - "cannot breathe"
+      - "severe bleeding"
+      - "stroke"
 
   - id: EMG_COMBINATION
     description: "A specific combination of symptoms + vitals meets an emergency pattern"

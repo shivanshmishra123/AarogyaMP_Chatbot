@@ -55,6 +55,5 @@ app.include_router(consultations.router, prefix="/api", tags=["Consultations"])
 app.include_router(consultations.ws_router, tags=["Chat"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 
-# Note: Person B owns app.routers.assessments, to be wired in Checkpoint 1
-# from app.routers import assessments
-# app.include_router(assessments.router, prefix="/api/assessments", tags=["Assessments"])
+from app.routers import assessments
+app.include_router(assessments.router, prefix="/api/assessments", tags=["Assessments"])

@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/services/mock_service.dart';
+import '../../core/services/assessment_service.dart';
 import '../../core/router/app_router.dart';
 import '../symptom_intake/symptom_input_screens.dart' show StepIndicator;
 
@@ -73,7 +73,7 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
     if (_formKey.currentState?.validate() == false) return;
     setState(() => _isLoading = true);
     try {
-      final result = await ref.read(mockServiceProvider).submitAssessment(
+      final result = await ref.read(assessmentServiceProvider).submitAssessment(
             rawText: widget.rawText,
             inputMode: widget.inputMode,
             vitals: _buildVitals().isEmpty ? null : _buildVitals(),
@@ -269,7 +269,7 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                       : () async {
                           setState(() => _isLoading = true);
                           try {
-                            final result = await ref.read(mockServiceProvider).submitAssessment(
+                            final result = await ref.read(assessmentServiceProvider).submitAssessment(
                                   rawText: widget.rawText,
                                   inputMode: widget.inputMode,
                                 );
