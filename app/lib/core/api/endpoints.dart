@@ -1,7 +1,7 @@
-/// AarogyaMP — API endpoints
-/// Person C owns this file (mirrors Reference §11 exactly — FROZEN).
-///
-/// Do NOT rename or add endpoints without updating AAROGYAMP-REFERENCE.md first.
+// AarogyaMP — API endpoints
+// Person C owns this file (mirrors Reference §11 exactly — FROZEN).
+//
+// Do NOT rename or add endpoints without updating AAROGYAMP-REFERENCE.md first.
 
 class Endpoints {
   // Base URLs are injected via --dart-define at build time (see core/api/api_client.dart)

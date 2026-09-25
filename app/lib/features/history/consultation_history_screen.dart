@@ -1,5 +1,5 @@
-/// AarogyaMP — Consultation history screen stub (Person C, M1) — Route: /history
-/// Both roles, filtered by role.
+// AarogyaMP — Consultation history screen stub (Person C, M1) — Route: /history
+// Both roles, filtered by role.
 import 'package:flutter/material.dart';
 
 class ConsultationHistoryScreen extends StatelessWidget {

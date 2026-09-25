@@ -1,5 +1,5 @@
-/// AarogyaMP — Assessment Dart model (mirrors schemas.py AssessmentResponse — FROZEN)
-/// Person C owns this file.
+// AarogyaMP — Assessment Dart model (mirrors schemas.py AssessmentResponse — FROZEN)
+// Person C owns this file.
 
 class PossibleCondition {
   final String name;

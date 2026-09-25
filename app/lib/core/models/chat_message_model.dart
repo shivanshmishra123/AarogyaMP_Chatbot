@@ -1,5 +1,5 @@
-/// AarogyaMP — ChatMessage Dart model (mirrors schemas.py ChatMessageOut — FROZEN)
-/// Person C owns this file.
+// AarogyaMP — ChatMessage Dart model (mirrors schemas.py ChatMessageOut — FROZEN)
+// Person C owns this file.
 
 class ChatMessage {
   final String id;

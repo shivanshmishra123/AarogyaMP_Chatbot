@@ -1,4 +1,4 @@
-/// AarogyaMP — Patient queue screen stub (Person C, M1) — Doctor role only — Route: /doctor/queue
+// AarogyaMP — Patient queue screen stub (Person C, M1) — Doctor role only — Route: /doctor/queue
 import 'package:flutter/material.dart';
 
 class PatientQueueScreen extends StatelessWidget {

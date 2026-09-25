@@ -1,4 +1,4 @@
-/// AarogyaMP — Doctor map screen stub (Person C, M1) — Route: /doctors/map
+// AarogyaMP — Doctor map screen stub (Person C, M1) — Route: /doctors/map
 import 'package:flutter/material.dart';
 
 class DoctorMapScreen extends StatelessWidget {

@@ -1,6 +1,6 @@
-/// AarogyaMP — Doctor Dart model (mirrors schemas.py DoctorOut — FROZEN)
-/// Person C owns this file.
-/// IMPORTANT: Never render contact info if verification_status != "verified"
+// AarogyaMP — Doctor Dart model (mirrors schemas.py DoctorOut — FROZEN)
+// Person C owns this file.
+// IMPORTANT: Never render contact info if verification_status != "verified"
 
 class Doctor {
   final String id;
