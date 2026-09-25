@@ -1,6 +1,6 @@
-/// AarogyaMP — Symptom voice input screen stub (Person C, M1)
-/// Route: /symptoms/voice
-/// IMPORTANT: Always let the patient review/edit the STT transcript before submitting (Reference §14).
+// AarogyaMP — Symptom voice input screen stub (Person C, M1)
+// Route: /symptoms/voice
+// IMPORTANT: Always let the patient review/edit the STT transcript before submitting (Reference §14).
 import 'package:flutter/material.dart';
 
 class SymptomVoiceInputScreen extends StatelessWidget {

@@ -1,5 +1,5 @@
-/// AarogyaMP — Patient detail screen stub (Person C, M1) — Doctor role — Route: /doctor/patient/:id
-/// Shows: symptoms + vitals + AI assessment (labeled as AI-generated, not fact) + chat entry.
+// AarogyaMP — Patient detail screen stub (Person C, M1) — Doctor role — Route: /doctor/patient/:id
+// Shows: symptoms + vitals + AI assessment (labeled as AI-generated, not fact) + chat entry.
 import 'package:flutter/material.dart';
 
 class PatientDetailScreen extends StatelessWidget {

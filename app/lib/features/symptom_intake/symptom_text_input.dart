@@ -1,5 +1,5 @@
-/// AarogyaMP — Symptom text input screen stub (Person C, M1)
-/// Route: /symptoms/text
+// AarogyaMP — Symptom text input screen stub (Person C, M1)
+// Route: /symptoms/text
 import 'package:flutter/material.dart';
 
 class SymptomTextInputScreen extends StatelessWidget {
