@@ -21,6 +21,7 @@ class AuthState {
   final String? name;
   final String? accessToken;         // JWT access token — needed for WS auth
   final bool isDoctorVerified;       // for routing; see AuthService notes on M3 TODO
+  final String? lastSymptomReportId; // latest assessment / symptom report id
 
   const AuthState({
     this.isAuthenticated = false,
@@ -29,6 +30,7 @@ class AuthState {
     this.name,
     this.accessToken,
     this.isDoctorVerified = false,
+    this.lastSymptomReportId,
   });
 
   AuthState copyWith({
@@ -38,6 +40,7 @@ class AuthState {
     String? name,
     String? accessToken,
     bool? isDoctorVerified,
+    String? lastSymptomReportId,
   }) {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
@@ -46,6 +49,7 @@ class AuthState {
       name: name ?? this.name,
       accessToken: accessToken ?? this.accessToken,
       isDoctorVerified: isDoctorVerified ?? this.isDoctorVerified,
+      lastSymptomReportId: lastSymptomReportId ?? this.lastSymptomReportId,
     );
   }
 }
@@ -152,6 +156,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       qualification: qualification,
     );
     state = newState;
+  }
+
+  void setLastSymptomReportId(String? id) {
+    state = state.copyWith(lastSymptomReportId: id);
   }
 
   Future<void> logout() async {

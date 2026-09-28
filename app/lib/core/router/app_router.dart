@@ -191,7 +191,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final extra = state.extra;
           return PatientDetailScreen(
             patientId: id,
-            patient: null, // extra is _MockPatient but it's private; pass null to let screen look it up
+            extra: extra,
           );
         },
       ),

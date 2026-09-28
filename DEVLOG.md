@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-09-28 — Milestone 2: Doctor Loop Live Wiring (Person C)
+
+**Who:** Person C (Mobile App)
+
+**What was done:**
+- Completed all 4 remaining layers for Milestone 2:
+  1. **Layer 1 (Auth):** Real JWT authentication via `AuthService` + persistent session storage with `shared_preferences`. Added `lastSymptomReportId` and `setLastSymptomReportId` to `AuthState` & `AuthNotifier`.
+  2. **Layer 2 (Doctor Directory + Location):** Implemented `DoctorService` wrapping `GET /api/doctors` with optional `specialty`, `lat`, `lng`, `radius_km`. Updated `DoctorListScreen` with live service integration, `geolocator` device location fetch, and graceful fallback when location permission is denied.
+  3. **Layer 3 (Consultations & WebSocket Chat):** Created `ConsultationService` (`POST /api/consultations` and `GET /api/consultations/{id}/messages`) and `ChatService` (`web_socket_channel` connected to `ws://host/ws/chat/{id}?token=<jwt>`). Implemented reconnect flow with 3-attempt exponential backoff (1s, 2s, 4s) fetching HTTP message history prior to reopening the socket (Reference §14). Rewrote `ChatScreen` with real-time bidirectional message events while preserving mock mode for offline testing.
+  4. **Layer 4 (Doctor Dashboard):** Created `PatientQueueItem` model mirroring `schemas.py`. Rewrote `PatientQueueScreen` to load live queue from `GET /api/doctor/queue`, with refresh indicator and empty/error states. Connected `PatientDetailScreen` and patient queue routing via `GoRouter` in `app_router.dart`.
+- Added unit tests in `app/test/m2_services_test.dart` verifying `PatientQueueItem`, `ChatMessageModel`, `DoctorService`, and `ConsultationService`.
+- Fixed analyzer errors and cleaned up unused imports across `app/lib`.
+
+**Verification Results:**
+- `flutter analyze`: **0 errors** (all lints/types clean).
+- `flutter test`: **8/8 passed** (`app smoke test` + all M2 unit tests).
+- Backend suite: `pytest server/tests/`: **29/29 passed** (emergency rules, specialty mapper, person A M1 API/DB).
+
+**Gotchas & Notes for Next Session:**
+- `POST /api/consultations`: if `symptom_report_id` is supplied, server checks DB for existing `SymptomReport`. Because Person B's `/api/assessments` has not yet implemented Stage 6 DB persistence for `SymptomReport`, `symptomReportId` is passed only when present in DB; otherwise `null` is sent, allowing `createConsultation` to succeed cleanly.
+- `ChatService` automatically cleans up socket subscriptions on dispose. Mock toggle `--dart-define=USE_MOCKS=true` remains fully functional for standalone testing.
+
+---
+
 ## 2026-09-28 — Architecture Decision: Firebase → ntfy.sh (All Tracks)
 
 **Who:** vedantdadhich (Person C) — decision affects all tracks

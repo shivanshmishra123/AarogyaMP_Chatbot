@@ -1,12 +1,19 @@
-// AarogyaMP — Doctor List + Doctor Profile Screens (M1 — Person C)
-// Reference §12: doctor_list_screen.dart, doctor_profile_screen.dart
-// IMPORTANT: Never render contact info for unverified doctors (defense-in-depth per Reference §14)
+// AarogyaMP — Doctor List + Doctor Profile Screens (M2 — Person C)
+// USE_MOCKS=true  → mockServiceProvider (unchanged from M1)
+// USE_MOCKS=false → DoctorService (GET /api/doctors) + geolocator
+//
+// Defense-in-depth: never render contact info if !doctor.isVerified
+// (server also enforces this, but we check client-side too — Reference §14)
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/models/doctor_model.dart';
+import '../../core/providers/auth_provider.dart';
+import '../../core/services/doctor_service.dart';
 import '../../core/services/mock_service.dart';
+import '../../core/services/consultation_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/router/app_router.dart';
 import '../../widgets/shared_widgets.dart';
@@ -27,6 +34,13 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
   String? _selectedSpecialty;
   late Future<List<Doctor>> _doctorsFuture;
 
+  // Location state
+  double? _lat;
+  double? _lng;
+  bool _locationDenied = false;
+
+  static const _useMocks = bool.fromEnvironment('USE_MOCKS', defaultValue: true);
+
   static const List<String> _specialties = [
     'All',
     'General Physician',
@@ -36,6 +50,8 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
     'ENT Specialist',
     'Orthopedic Specialist',
     'Neurologist',
+    'Gastroenterologist',
+    'Gynecologist',
     'Mental Health Professional',
   ];
 
@@ -43,13 +59,64 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
   void initState() {
     super.initState();
     _selectedSpecialty = widget.initialSpecialty;
+    if (!_useMocks) {
+      _initLocation();
+    } else {
+      _loadDoctors();
+    }
+  }
+
+  /// Try to get device location; gracefully fall back on denial.
+  Future<void> _initLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() => _locationDenied = true);
+        _loadDoctors();
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        setState(() => _locationDenied = true);
+        _loadDoctors();
+        return;
+      }
+
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low, // low = faster, sufficient for ~km radius
+      );
+      setState(() {
+        _lat = pos.latitude;
+        _lng = pos.longitude;
+        _locationDenied = false;
+      });
+    } catch (_) {
+      // Any unexpected error — still load doctors without coords
+      setState(() => _locationDenied = true);
+    }
     _loadDoctors();
   }
 
   void _loadDoctors() {
-    _doctorsFuture = ref.read(mockServiceProvider).getDoctors(
-          specialty: _selectedSpecialty == 'All' ? null : _selectedSpecialty,
-        );
+    final specialty = _selectedSpecialty == 'All' ? null : _selectedSpecialty;
+
+    if (_useMocks) {
+      _doctorsFuture =
+          ref.read(mockServiceProvider).getDoctors(specialty: specialty);
+    } else {
+      _doctorsFuture = ref.read(doctorServiceProvider).getDoctors(
+            specialty: specialty,
+            lat: _lat,
+            lng: _lng,
+            // 50 km radius when we have coords
+            radiusKm: (_lat != null && _lng != null) ? 50.0 : null,
+          );
+    }
   }
 
   @override
@@ -70,6 +137,40 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // Location denied banner (live mode only)
+            if (!_useMocks && _locationDenied)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                color: const Color(0xFFFFFBEB),
+                child: Row(
+                  children: [
+                    const Icon(Icons.location_off_outlined,
+                        size: 16, color: Color(0xFFD97706)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Location unavailable — showing all doctors. Enable location for distance-sorted results.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF92400E),
+                            ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setState(() => _locationDenied = false);
+                        _initLocation();
+                      },
+                      style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                      child: const Text('Retry',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF059669))),
+                    ),
+                  ],
+                ),
+              ),
+
             // Specialty filter chips
             Container(
               color: AppColors.surface,
@@ -100,10 +201,14 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                         fontFamily: 'NotoSans',
                         fontSize: 13,
                         fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                        color: selected ? AppColors.primary : AppColors.onSurfaceVariant,
+                        color: selected
+                            ? AppColors.primary
+                            : AppColors.onSurfaceVariant,
                       ),
                       side: BorderSide(
-                        color: selected ? AppColors.primary : AppColors.surfaceBorder,
+                        color: selected
+                            ? AppColors.primary
+                            : AppColors.surfaceBorder,
                       ),
                     );
                   },
@@ -123,7 +228,35 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                     );
                   }
                   if (snap.hasError) {
-                    return Center(child: Text('Error: ${snap.error}'));
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.cloud_off_rounded,
+                                size: 48, color: AppColors.outlineVariant),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Could not load doctors.\nCheck your connection and try again.',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: AppColors.onSurfaceVariant,
+                                  ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            OutlinedButton.icon(
+                              onPressed: () => setState(() => _loadDoctors()),
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
                   }
                   final doctors = snap.data ?? [];
                   if (doctors.isEmpty) {
@@ -131,11 +264,15 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.search_off_rounded, size: 48, color: AppColors.outlineVariant),
+                          const Icon(Icons.search_off_rounded,
+                              size: 48, color: AppColors.outlineVariant),
                           const SizedBox(height: 12),
                           Text(
                             'No verified doctors found\nfor this specialty.',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
                                   color: AppColors.onSurfaceVariant,
                                 ),
                             textAlign: TextAlign.center,
@@ -174,7 +311,6 @@ class _DoctorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Defense-in-depth: do not render unverified doctors
     if (!doctor.isVerified) return const SizedBox.shrink();
 
     return GestureDetector(
@@ -186,17 +322,17 @@ class _DoctorCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.surfaceBorder),
           boxShadow: const [
-            BoxShadow(color: Color(0x0D172B2A), blurRadius: 4, offset: Offset(0, 2)),
+            BoxShadow(
+                color: Color(0x0D172B2A), blurRadius: 4, offset: Offset(0, 2)),
           ],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Avatar
             Container(
               width: 54,
               height: 54,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppColors.primaryLight,
                 shape: BoxShape.circle,
               ),
@@ -220,10 +356,8 @@ class _DoctorCard extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(
-                          doctor.name,
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
+                        child: Text(doctor.name,
+                            style: Theme.of(context).textTheme.titleSmall),
                       ),
                       const VerifiedBadge(),
                     ],
@@ -249,12 +383,16 @@ class _DoctorCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.local_hospital_outlined, size: 13, color: AppColors.onSurfaceVariant),
+                        const Icon(Icons.local_hospital_outlined,
+                            size: 13, color: AppColors.onSurfaceVariant),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             doctor.hospital!,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
                                   color: AppColors.onSurfaceVariant,
                                 ),
                             overflow: TextOverflow.ellipsis,
@@ -267,11 +405,15 @@ class _DoctorCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.location_on_outlined, size: 13, color: AppColors.onSurfaceVariant),
+                        const Icon(Icons.location_on_outlined,
+                            size: 13, color: AppColors.onSurfaceVariant),
                         const SizedBox(width: 4),
                         Text(
                           '${doctor.distanceKm!.toStringAsFixed(1)} km away',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
                                 color: AppColors.onSurfaceVariant,
                               ),
                         ),
@@ -281,7 +423,8 @@ class _DoctorCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: AppColors.onSurfaceVariant),
+            const Icon(Icons.chevron_right_rounded,
+                color: AppColors.onSurfaceVariant),
           ],
         ),
       ),
@@ -292,9 +435,9 @@ class _DoctorCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // Doctor Profile Screen
 // ─────────────────────────────────────────────────────────────────────────────
-class DoctorProfileScreen extends ConsumerWidget {
+class DoctorProfileScreen extends ConsumerStatefulWidget {
   final String doctorId;
-  final Doctor? doctor; // passed via route extra to avoid re-fetch
+  final Doctor? doctor;
 
   const DoctorProfileScreen({
     super.key,
@@ -303,12 +446,76 @@ class DoctorProfileScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (doctor != null) {
-      return _buildProfile(context, ref, doctor!);
+  ConsumerState<DoctorProfileScreen> createState() =>
+      _DoctorProfileScreenState();
+}
+
+class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
+  static const _useMocks = bool.fromEnvironment('USE_MOCKS', defaultValue: true);
+  bool _isCreatingConsult = false;
+
+  Future<Doctor?> _loadDoctor() async {
+    if (widget.doctor != null) return widget.doctor;
+    if (_useMocks) {
+      return ref.read(mockServiceProvider).getDoctorById(widget.doctorId);
     }
+    return ref.read(doctorServiceProvider).getDoctorById(widget.doctorId);
+  }
+
+  /// In live mode: POST /api/consultations → navigate to real chat.
+  /// In mock mode: navigate with mock ID (unchanged from M1).
+  Future<void> _startChat(BuildContext context, Doctor doc) async {
+    if (_useMocks) {
+      context.push(
+        Routes.chat.replaceAll(':consultationId', 'mock-consult-${doc.id}'),
+        extra: {'doctorName': doc.name, 'doctorId': doc.id},
+      );
+      return;
+    }
+
+    // Live: create consultation first, then navigate
+    setState(() => _isCreatingConsult = true);
+    try {
+      final auth = ref.read(authProvider);
+      final symptomReportId = auth.lastSymptomReportId; // may be null (general consult)
+      final consultationId = await ref
+          .read(consultationServiceProvider)
+          .createConsultation(
+            doctorId: doc.id,
+            symptomReportId: symptomReportId,
+          );
+      if (!context.mounted) return;
+      context.push(
+        Routes.chat.replaceAll(':consultationId', consultationId),
+        extra: {'doctorName': doc.name, 'doctorId': doc.id},
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not start consultation: ${_shortError(e)}'),
+          backgroundColor: AppColors.riskHighBg,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isCreatingConsult = false);
+    }
+  }
+
+  String _shortError(Object e) {
+    final s = e.toString();
+    if (s.contains('404')) return 'Doctor not found.';
+    if (s.contains('401')) return 'Session expired. Please log in again.';
+    if (s.contains('connection') || s.contains('Socket')) {
+      return 'No connection.';
+    }
+    return 'Please try again.';
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return FutureBuilder<Doctor?>(
-      future: ref.read(mockServiceProvider).getDoctorById(doctorId),
+      future: _loadDoctor(),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const LoadingOverlay(message: 'Loading doctor profile...');
@@ -319,20 +526,21 @@ class DoctorProfileScreen extends ConsumerWidget {
             body: const Center(child: Text('Doctor not found.')),
           );
         }
-        return _buildProfile(context, ref, snap.data!);
+        final doc = snap.data!;
+        // Defense-in-depth: never show unverified profile
+        if (!doc.isVerified) {
+          return Scaffold(
+            appBar: AppBar(leading: BackButton(onPressed: () => context.pop())),
+            body:
+                const Center(child: Text('This doctor profile is not available.')),
+          );
+        }
+        return _buildProfile(context, doc);
       },
     );
   }
 
-  Widget _buildProfile(BuildContext context, WidgetRef ref, Doctor doc) {
-    // Defense-in-depth: never show unverified doctor profile
-    if (!doc.isVerified) {
-      return Scaffold(
-        appBar: AppBar(leading: BackButton(onPressed: () => context.pop())),
-        body: const Center(child: Text('This doctor profile is not available.')),
-      );
-    }
-
+  Widget _buildProfile(BuildContext context, Doctor doc) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -371,7 +579,8 @@ class DoctorProfileScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text(doc.name, style: Theme.of(context).textTheme.headlineSmall),
+                    Text(doc.name,
+                        style: Theme.of(context).textTheme.headlineSmall),
                     const SizedBox(height: 4),
                     Text(
                       doc.specialty,
@@ -400,7 +609,7 @@ class DoctorProfileScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    // Contact action buttons
+                    // Action buttons
                     Row(
                       children: [
                         Expanded(
@@ -433,19 +642,18 @@ class DoctorProfileScreen extends ConsumerWidget {
                         Expanded(
                           child: _ContactButton(
                             icon: Icons.chat_bubble_outline_rounded,
-                            label: 'Chat',
+                            label: _isCreatingConsult ? '...' : 'Chat',
                             color: AppColors.tertiary,
-                            onTap: () => context.push(
-                              Routes.chat.replaceAll(':consultationId', 'mock-consult-${doc.id}'),
-                              extra: {'doctorName': doc.name, 'doctorId': doc.id},
-                            ),
+                            isLoading: _isCreatingConsult,
+                            onTap: _isCreatingConsult
+                                ? () {}
+                                : () => _startChat(context, doc),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 20),
 
-                    // Info cards
                     if (doc.hospital != null)
                       _InfoRow(
                         icon: Icons.local_hospital_outlined,
@@ -462,9 +670,11 @@ class DoctorProfileScreen extends ConsumerWidget {
                       _InfoRow(
                         icon: Icons.near_me_outlined,
                         label: 'Distance',
-                        value: '${doc.distanceKm!.toStringAsFixed(1)} km from your location',
+                        value:
+                            '${doc.distanceKm!.toStringAsFixed(1)} km from your location',
                       ),
-                    if (doc.availability != null && doc.availability!.isNotEmpty)
+                    if (doc.availability != null &&
+                        doc.availability!.isNotEmpty)
                       _AvailabilityCard(availability: doc.availability!),
                   ],
                 ),
@@ -477,17 +687,23 @@ class DoctorProfileScreen extends ConsumerWidget {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Sub-widgets (shared between list and profile)
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _ContactButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
   final VoidCallback onTap;
+  final bool isLoading;
 
   const _ContactButton({
     required this.icon,
     required this.label,
     required this.color,
     required this.onTap,
+    this.isLoading = false,
   });
 
   @override
@@ -497,13 +713,20 @@ class _ContactButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           children: [
-            Icon(icon, color: color, size: 26),
+            isLoading
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                        color: color, strokeWidth: 2),
+                  )
+                : Icon(icon, color: color, size: 26),
             const SizedBox(height: 4),
             Text(
               label,
@@ -564,16 +787,26 @@ class _AvailabilityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dayNames = {'mon': 'Mon', 'tue': 'Tue', 'wed': 'Wed', 'thu': 'Thu', 'fri': 'Fri', 'sat': 'Sat', 'sun': 'Sun'};
+    final dayNames = {
+      'mon': 'Mon',
+      'tue': 'Tue',
+      'wed': 'Wed',
+      'thu': 'Thu',
+      'fri': 'Fri',
+      'sat': 'Sat',
+      'sun': 'Sun',
+    };
     return SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.schedule_rounded, size: 16, color: AppColors.primary),
+              const Icon(Icons.schedule_rounded,
+                  size: 16, color: AppColors.primary),
               const SizedBox(width: 8),
-              Text('Availability', style: Theme.of(context).textTheme.titleSmall),
+              Text('Availability',
+                  style: Theme.of(context).textTheme.titleSmall),
             ],
           ),
           const SizedBox(height: 12),
@@ -592,7 +825,8 @@ class _AvailabilityCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text(e.value.toString(), style: Theme.of(context).textTheme.bodySmall),
+                  Text(e.value.toString(),
+                      style: Theme.of(context).textTheme.bodySmall),
                 ],
               ),
             ),
