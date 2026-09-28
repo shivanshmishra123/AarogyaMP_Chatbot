@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-09-28 — Architecture Decision: Firebase → ntfy.sh (All Tracks)
+
+**Who:** vedantdadhich (Person C) — decision affects all tracks
+
+**Decision made: Replace Firebase Cloud Messaging with ntfy.sh self-hosted push notifications.**
+
+**Rationale:**
+- This project will be handed off to a government/institutional operator who will deploy it independently.
+- Firebase FCM ties the APK to a specific Firebase project (requires `google-services.json` baked in at build time) and requires the operator to re-create that project and re-configure all keys. This is not a viable handoff story.
+- ntfy.sh runs as a Docker sidecar (`binwiederhier/ntfy` official image) — the entire deployment is `docker compose up`. Zero external accounts, zero Google dependency, zero credentials the operator doesn't already own.
+- DPDP Act (India §18): notification payloads contain patient name + message preview (health-adjacent data). Routing through Google infrastructure adds unnecessary third-party exposure.
+
+**What changed in each track:**
+
+| Track | Change |
+|---|---|
+| **Person C (app)** | Removed `firebase_core` and `firebase_messaging` from `app/pubspec.yaml`. The commented-out `Firebase.initializeApp()` in `main.dart` can be deleted. Run `flutter pub get` before next build. |
+| **Person A (server)** | No code change yet — `notifications.py` stub already no-ops when `FCM_SERVER_KEY` is empty. For M2: leave as-is. **For M4:** add `ntfy` service to `docker-compose.yml`; change `notifications.py` to `httpx.post("http://ntfy/<doctor_id>", data=preview)`. Do NOT uncomment `firebase-admin` in `requirements.txt`. |
+| **Person B** | No change — notifications are out of B's scope. |
+
+**Docs updated:** `AAROGYAMP-REFERENCE.md` §2 tech stack + §15 Push Notifications, `AAROGYAMP-WORKPLAN.md` M2/M4 tasks + Fallback table.
+
+**Functionalities preserved:** In-app real-time messaging is fully covered by WebSocket (already implemented by Person A). Background push (when app is closed) is deferred to M4 and will use ntfy.sh instead of FCM — same UX outcome, different transport.
+
+**For next session (any track):** Read this entry. Firebase is deliberately not used. Do not add `firebase_core`, `firebase_messaging`, or `firebase-admin` to any file without explicit team sign-off.
+
+---
+
 ## 2026-09-25 — Checkpoint 1: First Integration & Pipeline Verification (All Tracks)
 
 **Who:** Person C (vedantdadhich) coordinating Checkpoint 1 integration

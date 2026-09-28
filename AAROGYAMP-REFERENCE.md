@@ -49,7 +49,7 @@ AarogyaMP is a **symptom-assessment + doctor-discovery + doctor-chat platform**,
 | Voice input | `speech_to_text` (device STT) or server-side STT (see §15) |
 | Voice playback (doctor TTS) | `flutter_tts` |
 | Maps/location | `geolocator` + `google_maps_flutter` (or an OSM alternative) |
-| Push notifications | Firebase Cloud Messaging |
+| Push notifications | **ntfy.sh** (self-hosted, runs as Docker sidecar — no external account required) |
 | Image/file picking | `image_picker`, `file_picker` |
 
 ### Backend (`/server`) — Python
@@ -680,7 +680,13 @@ Decide this by: whether patient symptom text is allowed to leave your own infras
 Google Maps Platform (Geocoding + Places or your own doctor DB with lat/lng) — or an OpenStreetMap-based stack (Nominatim + a free tile provider) if avoiding Google's pricing/ToS is a priority.
 
 ### Push Notifications
-Firebase Cloud Messaging — new chat message, doctor accepted/responded, queue updates for doctors.
+**ntfy.sh (self-hosted)** — new chat message, doctor accepted/responded, queue updates for doctors.
+
+ntfy runs as a Docker sidecar service in `docker-compose.yml` alongside `postgres` and `server`. It requires zero external accounts, zero Google dependency, and zero credentials the deployment operator does not already own. The server notifies via a plain `HTTP POST` to `http://ntfy/<topic>` (handled in `services/notifications.py`). The Flutter app subscribes to its personal topic via the `web_socket_channel` package (ntfy supports WebSocket subscription natively) — no FCM SDK, no `google-services.json`, no Firebase project.
+
+**Why not Firebase FCM:** This project targets handoff to a government/institutional operator who will host it independently. Firebase FCM binds the APK to a specific Firebase project and requires the operator to re-create and re-configure that project and re-build the APK. ntfy avoids this entirely — `docker compose up` is the complete deployment story.
+
+> **Migration path if FCM is ever required:** Swap `notifications.py` implementation only (config change). The `FCM_SERVER_KEY` env var is preserved in `config.py` as a migration hook. App-side: replace the ntfy WebSocket subscription with `firebase_messaging` (the pubspec package was removed at Milestone 2 — re-add it if needed).
 
 ### Doctor verification data
 Doctor records (name, qualification, registration number, specialty, contact) must come from a verified source — a manual onboarding/verification process at minimum, ideally cross-checked against a state medical council registry where available. **Never let the AI layer generate or infer a doctor record.**
