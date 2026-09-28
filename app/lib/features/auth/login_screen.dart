@@ -1,4 +1,7 @@
-// AarogyaMP — Login Screen (M1 — Person C)
+// AarogyaMP — Login Screen (M2 — Person C)
+// Real auth: POST /api/auth/login with phone + password.
+// Role is determined by the server JWT response — no need to select it here.
+// Mock path: USE_MOCKS=true keeps in-memory mock for dev/design review.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,15 +18,16 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
-  UserRole _selectedRole = UserRole.patient;
   bool _obscurePassword = true;
   bool _isLoading = false;
 
+  static const _useMocks = bool.fromEnvironment('USE_MOCKS', defaultValue: true);
+
   @override
   void dispose() {
-    _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -33,13 +37,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       await ref.read(authProvider.notifier).login(
-            email: _emailController.text.trim(),
+            phone: _phoneController.text.trim(),
             password: _passwordController.text,
-            role: _selectedRole,
+            // hintRole only matters in mock mode; server determines real role
+            hintRole: UserRole.patient,
           );
       if (!mounted) return;
-      if (_selectedRole == UserRole.doctor) {
-        final auth = ref.read(authProvider);
+      final auth = ref.read(authProvider);
+      if (auth.role == UserRole.doctor) {
         if (auth.isDoctorVerified) {
           context.go(Routes.doctorQueue);
         } else {
@@ -48,14 +53,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       } else {
         context.go(Routes.patientHome);
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (!mounted) return;
+      final msg = _friendlyError(e.toString());
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed: ${e.toString()}')),
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: AppColors.riskHighBg,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  /// Convert raw Dio/server error messages into user-friendly text.
+  String _friendlyError(String raw) {
+    if (raw.contains('401') || raw.contains('Invalid phone')) {
+      return 'Incorrect phone number or password.';
+    }
+    if (raw.contains('SocketException') || raw.contains('connection')) {
+      return 'Cannot reach server. Check your network connection.';
+    }
+    if (raw.contains('timeout')) {
+      return 'Request timed out. Please try again.';
+    }
+    return 'Login failed. Please try again.';
   }
 
   @override
@@ -71,7 +94,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 24),
-                // Logo / branding
+                // Branding
                 Row(
                   children: [
                     Container(
@@ -81,7 +104,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         color: AppColors.primary,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.favorite_rounded, color: Colors.white, size: 28),
+                      child: const Icon(Icons.favorite_rounded,
+                          color: Colors.white, size: 28),
                     ),
                     const SizedBox(width: 12),
                     Column(
@@ -89,7 +113,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       children: [
                         Text(
                           'AarogyaMP',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
+                              ?.copyWith(
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -116,47 +143,57 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         color: AppColors.onSurfaceVariant,
                       ),
                 ),
+                if (_useMocks) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FFF4),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline_rounded,
+                            size: 14, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Mock mode — any input works',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppColors.primary,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 28),
 
-                // Role selector
-                Text('I am a', style: Theme.of(context).textTheme.labelLarge),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _RoleChip(
-                      label: 'Patient',
-                      icon: Icons.person_outline_rounded,
-                      selected: _selectedRole == UserRole.patient,
-                      onTap: () => setState(() => _selectedRole = UserRole.patient),
-                    ),
-                    const SizedBox(width: 12),
-                    _RoleChip(
-                      label: 'Doctor',
-                      icon: Icons.medical_services_outlined,
-                      selected: _selectedRole == UserRole.doctor,
-                      onTap: () => setState(() => _selectedRole = UserRole.doctor),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // Email
+                // Phone field
                 TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
-                    labelText: 'Email / Phone',
-                    prefixIcon: Icon(Icons.email_outlined, size: 20),
+                    labelText: 'Phone Number',
+                    prefixIcon: Icon(Icons.phone_outlined, size: 20),
+                    hintText: '10-digit mobile number',
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Please enter your email or phone';
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Please enter your phone number';
+                    }
+                    // In mock mode, accept anything
+                    if (!_useMocks && v.trim().length < 10) {
+                      return 'Enter a valid phone number';
+                    }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
 
-                // Password
+                // Password field
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
@@ -164,24 +201,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   onFieldSubmitted: (_) => _submit(),
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                    prefixIcon:
+                        const Icon(Icons.lock_outline_rounded, size: 20),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
                         size: 20,
                       ),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Please enter your password';
-                    if (v.length < 6) return 'Password must be at least 6 characters';
+                    if (!_useMocks && v.length < 6) {
+                      return 'Password must be at least 6 characters';
+                    }
                     return null;
                   },
                 ),
                 const SizedBox(height: 28),
 
-                // Login button
+                // Sign In button
                 ElevatedButton(
                   onPressed: _isLoading ? null : _submit,
                   child: _isLoading
@@ -189,9 +232,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2.5,
-                          ),
+                              color: Colors.white, strokeWidth: 2.5),
                         )
                       : const Text('Sign In'),
                 ),
@@ -207,7 +248,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: AppColors.onSurfaceVariant,
                             ),
-                        children: [
+                        children: const [
                           TextSpan(
                             text: 'Register',
                             style: TextStyle(
@@ -222,60 +263,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RoleChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _RoleChip({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: selected ? AppColors.primaryLight : AppColors.surface,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: selected ? AppColors.primary : AppColors.surfaceBorder,
-              width: selected ? 2 : 1,
-            ),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                icon,
-                color: selected ? AppColors.primary : AppColors.onSurfaceVariant,
-                size: 24,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: 'NotoSans',
-                  fontSize: 13,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                  color: selected ? AppColors.primary : AppColors.onSurfaceVariant,
-                ),
-              ),
-            ],
           ),
         ),
       ),

@@ -1,35 +1,42 @@
-// AarogyaMP — App entry point
-// Person C owns this file.
+// AarogyaMP — App entry point (M2 — Person C)
 //
-// Reads USE_MOCKS build flag:
-//   flutter run --dart-define=USE_MOCKS=true   → uses app/lib/mocks/
+// USE_MOCKS build flag:
+//   flutter run --dart-define=USE_MOCKS=true   → uses app/lib/mocks/ (default)
 //   flutter run --dart-define=USE_MOCKS=false  → wires live API
 //
-// Routes are defined in core/router/app_router.dart (go_router)
-// Theme is defined in core/theme/app_theme.dart
+// SharedPreferences initialized here and injected via ProviderScope.overrides
+// so all providers can access it synchronously without FutureProvider chains.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/providers/shared_preferences_provider.dart';
 
-// Build flag — toggle mocks vs. live API
 const bool kUseMocks = bool.fromEnvironment('USE_MOCKS', defaultValue: true);
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   // Lock to portrait
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  // TODO (M2 — Person C): Initialize Firebase if USE_MOCKS=false
-  // await Firebase.initializeApp();
+
+  // Initialize persistent storage (needed for JWT token, session restore)
+  final prefs = await SharedPreferences.getInstance();
+
   runApp(
-    const ProviderScope(
-      child: AarogyaMPApp(),
+    ProviderScope(
+      overrides: [
+        // Inject the SharedPreferences instance so any provider can watch it.
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const AarogyaMPApp(),
     ),
   );
 }
@@ -40,7 +47,6 @@ class AarogyaMPApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
-    // Apply Noto Sans via google_fonts to the generated theme
     final baseTheme = AppTheme.light;
     final theme = baseTheme.copyWith(
       textTheme: GoogleFonts.notoSansTextTheme(baseTheme.textTheme),
