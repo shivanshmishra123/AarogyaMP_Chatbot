@@ -175,7 +175,7 @@ flutter run --dart-define=USE_MOCKS=true
 
 **Person A:**
 - [ ] Doctor onboarding/verification flow (even if `routers/admin.py` is just an ops-token-gated endpoint for now, per Reference §3)
-- [ ] Push notifications: new chat message, new patient in doctor's queue (FCM)
+- [ ] Push notifications: new chat message, new patient in doctor's queue (**ntfy.sh** via HTTP POST to `http://ntfy/<doctor_id>` — see Reference §15 Push Notifications; add `ntfy` service to `docker-compose.yml`)
 - [ ] `GET /api/consultations/{id}/messages` pagination for reconnects and dashboard load
 
 **Person B:**
@@ -217,8 +217,8 @@ Same checkpoint discipline as CP1: fix solo, don't crowd, re-run both flows twic
 
 ### MILESTONE 4 — Beta Readiness
 
-- [ ] **A:** deploy backend + Postgres (Docker Compose or a managed host), production env vars set, backups configured
 - [ ] **C:** internal test track build (TestFlight / Play internal testing), crash reporting wired
+- [ ] **A:** deploy backend + Postgres + ntfy (Docker Compose) — single `docker compose up` deploys all three services; no external accounts required for the operator
 - [ ] **B:** final LLM provider decision documented with the data-handling rationale (Reference §15/§18), monitoring for `ai_status="unavailable"` rate in production
 - [ ] **ALL:** real doctor onboarding/verification process defined (who checks credentials, how `verification_status` actually gets flipped in production — not just the ops-token placeholder), clinical sign-off obtained and recorded for `emergency_rules.yaml`
 
@@ -247,6 +247,7 @@ Golden rule: **continuous solo testing on your own track, scheduled group testin
 | On-device STT poor for regional languages | M0/M1 | Fall back to server-side Whisper (Reference §15) — flagged as a data-handling decision, not just a technical swap |
 | Google Maps cost/ToS a blocker | Any milestone | Swap to an OSM-based stack; doctor search API shape (Reference §11) doesn't change |
 | Real doctor onboarding lags behind engineering | M2+ | Keep demoing/testing against the synthetic doctor directory (Reference §16); never block engineering progress on real onboarding completing |
+| Push notification provider | M3/M4 | ntfy.sh self-hosted (Docker sidecar). **Do not implement Firebase FCM** — the project is a handoff to an institutional operator who cannot be expected to own a Firebase project. FCM_SERVER_KEY env var is preserved as a migration hook if FCM is ever required. |
 | Clinical sign-off on emergency rules delayed | M3/M4 | Do not ship emergency-rule changes without it — this is the one item allowed to block a release |
 
 ---
