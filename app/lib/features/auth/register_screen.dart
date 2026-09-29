@@ -2,6 +2,7 @@
 // Real auth: POST /api/auth/register with full payload.
 // Doctor registration requires specialty (server validates this).
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
@@ -194,6 +195,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   textInputAction: TextInputAction.next,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
                   decoration: const InputDecoration(
                     labelText: 'Phone Number',
                     prefixIcon: Icon(Icons.phone_outlined, size: 20),
@@ -203,8 +208,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     if (v == null || v.trim().isEmpty) {
                       return 'Please enter your phone number';
                     }
-                    if (!_useMocks && v.trim().length < 10) {
-                      return 'Enter a valid 10-digit phone number';
+                    if (!_useMocks && v.trim().length != 10) {
+                      return 'Phone number must be exactly 10 digits';
                     }
                     return null;
                   },

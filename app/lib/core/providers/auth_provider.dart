@@ -22,6 +22,8 @@ class AuthState {
   final String? accessToken;         // JWT access token — needed for WS auth
   final bool isDoctorVerified;       // for routing; see AuthService notes on M3 TODO
   final String? lastSymptomReportId; // latest assessment / symptom report id
+  final String? lastConsultationId;  // latest active consultation id
+  final String? lastConsultationDoctorName;
 
   const AuthState({
     this.isAuthenticated = false,
@@ -31,6 +33,8 @@ class AuthState {
     this.accessToken,
     this.isDoctorVerified = false,
     this.lastSymptomReportId,
+    this.lastConsultationId,
+    this.lastConsultationDoctorName,
   });
 
   AuthState copyWith({
@@ -41,6 +45,8 @@ class AuthState {
     String? accessToken,
     bool? isDoctorVerified,
     String? lastSymptomReportId,
+    String? lastConsultationId,
+    String? lastConsultationDoctorName,
   }) {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
@@ -50,6 +56,8 @@ class AuthState {
       accessToken: accessToken ?? this.accessToken,
       isDoctorVerified: isDoctorVerified ?? this.isDoctorVerified,
       lastSymptomReportId: lastSymptomReportId ?? this.lastSymptomReportId,
+      lastConsultationId: lastConsultationId ?? this.lastConsultationId,
+      lastConsultationDoctorName: lastConsultationDoctorName ?? this.lastConsultationDoctorName,
     );
   }
 }
@@ -160,6 +168,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   void setLastSymptomReportId(String? id) {
     state = state.copyWith(lastSymptomReportId: id);
+  }
+
+  void setLastConsultation({
+    required String consultationId,
+    required String doctorName,
+  }) {
+    state = state.copyWith(
+      lastConsultationId: consultationId,
+      lastConsultationDoctorName: doctorName,
+    );
+    if (!_useMocks && _prefs != null) {
+      _initService();
+      _authService?.saveLastConsultation(consultationId, doctorName);
+    }
   }
 
   Future<void> logout() async {

@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/router/app_router.dart';
 import '../../core/services/chat_service.dart';
 import '../../core/services/consultation_service.dart';
 import '../../core/theme/app_theme.dart';
@@ -181,7 +182,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         : _wsConnected
             ? 'Connected'
             : _wsError != null
-                ? _wsError!
+                ? 'Disconnected'
                 : 'Connecting...';
 
     return Scaffold(
@@ -225,19 +226,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             ),
                       ),
                     ),
-                    TextButton(
-                      onPressed: () {
-                        setState(() => _wsError = null);
-                        _connectLive();
-                      },
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    if (_wsError!.contains('not found'))
+                      TextButton(
+                        onPressed: () => context.push(Routes.doctorList),
+                        child: const Text('Find Doctor',
+                            style: TextStyle(
+                                fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold)),
+                      )
+                    else
+                      TextButton(
+                        onPressed: () {
+                          setState(() => _wsError = null);
+                          _connectLive();
+                        },
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text('Reconnect',
+                            style: TextStyle(
+                                fontSize: 12, color: AppColors.primary)),
                       ),
-                      child: const Text('Reconnect',
-                          style: TextStyle(
-                              fontSize: 12, color: AppColors.primary)),
-                    ),
                   ],
                 ),
               ),

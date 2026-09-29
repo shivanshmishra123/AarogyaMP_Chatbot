@@ -53,42 +53,50 @@ class PatientHomeScreen extends ConsumerWidget {
                             ],
                           ),
                         ),
-                        CircleAvatar(
-                          backgroundColor: Colors.white24,
-                          radius: 24,
-                          child: Text(
-                            (auth.name ?? 'U').substring(0, 1).toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 18,
+                        GestureDetector(
+                          onTap: () => _showProfileSheet(context, ref, auth),
+                          child: CircleAvatar(
+                            backgroundColor: Colors.white24,
+                            radius: 24,
+                            child: Text(
+                              (auth.name ?? 'U').substring(0, 1).toUpperCase(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 18,
+                              ),
                             ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white24),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.favorite_rounded, color: Colors.white, size: 28),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'How are you feeling today?',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                    InkWell(
+                      onTap: () => context.push(Routes.symptomText),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.favorite_rounded, color: Colors.white, size: 28),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'How are you feeling today?',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
                             ),
-                          ),
-                        ],
+                            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 16),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -231,7 +239,18 @@ class PatientHomeScreen extends ConsumerWidget {
         currentIndex: 0,
         onTap: (i) {
           if (i == 1) context.push(Routes.doctorList);
-          if (i == 2) context.push(Routes.chat.replaceAll(':consultationId', 'mock-consult-001'));
+          if (i == 2) {
+            final lastId = auth.lastConsultationId;
+            final docName = auth.lastConsultationDoctorName ?? 'Doctor';
+            if (lastId != null && lastId.isNotEmpty) {
+              context.push(
+                Routes.chat.replaceAll(':consultationId', lastId),
+                extra: {'doctorName': docName},
+              );
+            } else {
+              _showNoActiveConsultationSheet(context);
+            }
+          }
           if (i == 3) context.push(Routes.history);
         },
       ),
@@ -243,6 +262,150 @@ class PatientHomeScreen extends ConsumerWidget {
     if (hour < 12) return 'Good morning';
     if (hour < 17) return 'Good afternoon';
     return 'Good evening';
+  }
+
+  void _showNoActiveConsultationSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: const BoxDecoration(
+                  color: AppColors.primaryLight,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.chat_bubble_outline_rounded,
+                  color: AppColors.primary,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No Active Consultation',
+                style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Consultation chats are started directly with a verified doctor. Choose a doctor from our directory to start a chat.',
+                textAlign: TextAlign.center,
+                style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                      height: 1.4,
+                    ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        context.push(Routes.doctorList);
+                      },
+                      icon: const Icon(Icons.person_search_rounded, size: 18),
+                      label: const Text('Find Doctors'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showProfileSheet(BuildContext context, WidgetRef ref, AuthState auth) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              CircleAvatar(
+                radius: 36,
+                backgroundColor: AppColors.primaryLight,
+                child: Text(
+                  (auth.name ?? 'P').substring(0, 1).toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                auth.name ?? 'Patient',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Role: Patient',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  Navigator.of(ctx).pop();
+                  await ref.read(authProvider.notifier).logout();
+                  if (context.mounted) {
+                    context.go(Routes.login);
+                  }
+                },
+                icon: const Icon(Icons.logout_rounded, color: Colors.white),
+                label: const Text('Log Out'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.emergencyRed,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

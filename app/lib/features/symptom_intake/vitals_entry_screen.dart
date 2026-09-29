@@ -81,9 +81,9 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
       if (!mounted) return;
       final nav = context;
       if (result.isEmergency) {
-        nav.go(Routes.emergency, extra: result);
+        nav.push(Routes.emergency, extra: result);
       } else {
-        nav.go(
+        nav.push(
           Routes.assessment.replaceAll(':id', result.assessmentId),
           extra: result,
         );
@@ -260,7 +260,7 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                           width: 20,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                         )
-                      : const Text('Analyse Symptoms'),
+                      : const Text('Get AI Assessment'),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton(
@@ -275,9 +275,9 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                                 );
                             if (!mounted) return;
                             if (result.isEmergency) {
-                              context.go(Routes.emergency, extra: result);
+                              context.push(Routes.emergency, extra: result);
                             } else {
-                              context.go(
+                              context.push(
                                 Routes.assessment.replaceAll(':id', result.assessmentId),
                                 extra: result,
                               );
@@ -286,7 +286,7 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                             if (mounted) setState(() => _isLoading = false);
                           }
                         },
-                  child: const Text('Skip Vitals & Continue'),
+                  child: const Text('Skip Vitals & Get Assessment'),
                 ),
                 const SizedBox(height: 20),
               ],

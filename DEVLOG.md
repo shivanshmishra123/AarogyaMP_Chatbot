@@ -4,6 +4,35 @@
 
 ---
 
+## 2026-09-29 — M2 Integration Testing & UX Bug Fixes (Person C)
+
+**Who:** Person C (Mobile App)
+
+**What was done:**
+1. **Chat Tab & WebSocket Connection Fix:**
+   - Root cause: Bottom nav bar Chat tab previously had hardcoded `'mock-consult-001'`. In live mode (`USE_MOCKS=false`), the backend checked SQLite for `mock-consult-001`, rejected it with WebSocket `code 1008` (Policy Violation: Consultation not found), and `ChatService` auto-reconnected indefinitely, leaving the header stuck at "Connecting...".
+   - Added `lastConsultationId` & `lastConsultationDoctorName` to `AuthState` & `AuthNotifier`, persisted via `SharedPreferences`.
+   - Updated `DoctorListScreen` to store the active `consultationId` when `_startChat` creates a consultation.
+   - Updated `patient_home_screen.dart` bottom nav: If active consultation exists, navigates directly to it; if none exists, displays a modal sheet explaining consultations are started with a verified doctor and provides a "Find Doctors" button.
+   - Updated `chat_service.dart`: Handles HTTP 404 from `getMessages` and WebSocket close code 1008 directly without infinite reconnect loops.
+   - Updated `chat_screen.dart`: Shows clean "Disconnected" status and an action button "Find Doctor" if consultation room does not exist.
+2. **Form Validation & Input Polish:**
+   - Added `LengthLimitingTextInputFormatter(10)` and `digitsOnly` to phone fields on Login & Register.
+   - Fixed white text contrast on emergency red SnackBar errors.
+3. **Navigation & Android Back Gesture:**
+   - Updated `vitals_entry_screen.dart` to push rather than replace routes, preserving back navigation.
+   - Added `PopScope` to `assessment_result_screen.dart` preventing accidental app exits.
+   - Added Logout action inside profile bottom sheet on home screen.
+4. **Card Rendering & Overflow Fixes:**
+   - Replaced invalid `BoxDecoration` (non-uniform border with `borderRadius`) in `SectionCard` and `AssessmentResultScreen` with a clean `Stack` indicator.
+   - Fixed bottom pixel overflow in assessment summary cards.
+
+**Verification Results:**
+- `flutter analyze`: **0 errors**.
+- `flutter test`: **8/8 tests passed**.
+
+---
+
 ## 2026-09-28 — Milestone 2: Doctor Loop Live Wiring (Person C)
 
 **Who:** Person C (Mobile App)

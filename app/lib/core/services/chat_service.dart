@@ -13,6 +13,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../api/api_client.dart';
@@ -75,6 +76,15 @@ class ChatService {
       if (!_disposed) {
         _controller.add(ChatHistoryLoaded(messages));
       }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        if (!_disposed) {
+          _controller.add(ChatConnectionStatus(
+            connected: false,
+            error: 'Consultation session not found.',
+          ));
+        }
+      }
     } catch (_) {
       // History load failure is non-fatal — still open WS
     }
@@ -121,6 +131,16 @@ class ChatService {
   }
 
   void _onDone() {
+    final code = _channel?.closeCode;
+    if (code == 1008) {
+      if (!_disposed) {
+        _controller.add(ChatConnectionStatus(
+          connected: false,
+          error: 'Consultation session not found or access denied.',
+        ));
+      }
+      return;
+    }
     if (!_disposed) {
       _controller.add(ChatConnectionStatus(connected: false));
     }

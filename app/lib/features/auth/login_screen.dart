@@ -3,6 +3,7 @@
 // Role is determined by the server JWT response — no need to select it here.
 // Mock path: USE_MOCKS=true keeps in-memory mock for dev/design review.
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
@@ -58,8 +59,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final msg = _friendlyError(e.toString());
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(msg),
-          backgroundColor: AppColors.riskHighBg,
+          content: Text(
+            msg,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+          ),
+          backgroundColor: AppColors.emergencyRed,
         ),
       );
     } finally {
@@ -175,6 +179,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   textInputAction: TextInputAction.next,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
                   decoration: const InputDecoration(
                     labelText: 'Phone Number',
                     prefixIcon: Icon(Icons.phone_outlined, size: 20),
@@ -184,9 +192,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     if (v == null || v.trim().isEmpty) {
                       return 'Please enter your phone number';
                     }
-                    // In mock mode, accept anything
-                    if (!_useMocks && v.trim().length < 10) {
-                      return 'Enter a valid phone number';
+                    if (!_useMocks && v.trim().length != 10) {
+                      return 'Phone number must be exactly 10 digits';
                     }
                     return null;
                   },

@@ -29,6 +29,8 @@ class AuthService {
   static const _kRole = 'auth_role';
   static const _kName = 'auth_name';
   static const _kUserId = 'auth_user_id';
+  static const _kLastConsultationId = 'auth_last_consultation_id';
+  static const _kLastConsultationDoctorName = 'auth_last_consultation_doctor_name';
 
   AuthService(this._dio, this._prefs);
 
@@ -159,7 +161,15 @@ class AuthService {
       name: _prefs.getString(_kName),
       accessToken: token,
       isDoctorVerified: true, // M2: assume verified on session restore
+      lastConsultationId: _prefs.getString(_kLastConsultationId),
+      lastConsultationDoctorName: _prefs.getString(_kLastConsultationDoctorName),
     );
+  }
+
+  /// Persist last active consultation details.
+  Future<void> saveLastConsultation(String consultationId, String doctorName) async {
+    await _prefs.setString(_kLastConsultationId, consultationId);
+    await _prefs.setString(_kLastConsultationDoctorName, doctorName);
   }
 
   /// Clear all stored auth data (logout).
@@ -170,6 +180,8 @@ class AuthService {
       _prefs.remove(_kRole),
       _prefs.remove(_kName),
       _prefs.remove(_kUserId),
+      _prefs.remove(_kLastConsultationId),
+      _prefs.remove(_kLastConsultationDoctorName),
     ]);
   }
 }

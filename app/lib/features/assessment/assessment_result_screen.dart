@@ -25,12 +25,19 @@ class AssessmentResultScreen extends StatelessWidget {
 
     final riskColor = _riskColor(result.riskLevel);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Assessment Result'),
-        leading: BackButton(onPressed: () => context.go(Routes.patientHome)),
-      ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          context.go(Routes.patientHome);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text('Assessment Result'),
+          leading: BackButton(onPressed: () => context.go(Routes.patientHome)),
+        ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -40,30 +47,38 @@ class AssessmentResultScreen extends StatelessWidget {
               // ── Risk band card ─────────────────────────────────
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border(
-                    top: BorderSide(color: riskColor, width: 4),
-                    left: const BorderSide(color: AppColors.surfaceBorder),
-                    right: const BorderSide(color: AppColors.surfaceBorder),
-                    bottom: const BorderSide(color: AppColors.surfaceBorder),
-                  ),
+                  border: Border.all(color: AppColors.surfaceBorder),
                   boxShadow: const [
                     BoxShadow(color: Color(0x0D172B2A), blurRadius: 6, offset: Offset(0, 2)),
                   ],
                 ),
+                clipBehavior: Clip.antiAlias,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    RiskBadge(riskLevel: result.riskLevel, large: true),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Based on your symptoms & vitals',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.onSurfaceVariant,
+                    Container(
+                      height: 4,
+                      width: double.infinity,
+                      color: riskColor,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          RiskBadge(riskLevel: result.riskLevel, large: true),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Based on your symptoms & vitals',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: AppColors.onSurfaceVariant,
+                                ),
                           ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -174,8 +189,9 @@ class AssessmentResultScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Color _riskColor(String level) {
     switch (level.toUpperCase()) {

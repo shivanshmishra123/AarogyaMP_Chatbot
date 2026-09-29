@@ -466,6 +466,10 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
   /// In mock mode: navigate with mock ID (unchanged from M1).
   Future<void> _startChat(BuildContext context, Doctor doc) async {
     if (_useMocks) {
+      ref.read(authProvider.notifier).setLastConsultation(
+            consultationId: 'mock-consult-${doc.id}',
+            doctorName: doc.name,
+          );
       context.push(
         Routes.chat.replaceAll(':consultationId', 'mock-consult-${doc.id}'),
         extra: {'doctorName': doc.name, 'doctorId': doc.id},
@@ -483,6 +487,10 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
           .createConsultation(
             doctorId: doc.id,
             symptomReportId: symptomReportId,
+          );
+      ref.read(authProvider.notifier).setLastConsultation(
+            consultationId: consultationId,
+            doctorName: doc.name,
           );
       if (!context.mounted) return;
       context.push(

@@ -175,14 +175,7 @@ class SectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border(
-          left: accentColor != null
-              ? BorderSide(color: accentColor!, width: 4)
-              : const BorderSide(color: AppColors.surfaceBorder),
-          right: const BorderSide(color: AppColors.surfaceBorder),
-          top: const BorderSide(color: AppColors.surfaceBorder),
-          bottom: const BorderSide(color: AppColors.surfaceBorder),
-        ),
+        border: Border.all(color: AppColors.surfaceBorder),
         boxShadow: const [
           BoxShadow(
             color: Color(0x0D172B2A),
@@ -191,9 +184,23 @@ class SectionCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(
-        padding: padding ?? const EdgeInsets.all(16),
-        child: child,
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Padding(
+            padding: padding ??
+                EdgeInsets.fromLTRB(accentColor != null ? 20 : 16, 16, 16, 16),
+            child: child,
+          ),
+          if (accentColor != null)
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 4,
+              child: Container(color: accentColor),
+            ),
+        ],
       ),
     );
   }
