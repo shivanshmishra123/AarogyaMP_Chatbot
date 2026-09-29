@@ -1,5 +1,5 @@
 """
-AarogyaMP — AI Symptom Engine (Milestone 1)
+AarogyaMP — AI Symptom Engine (Milestone 1 + Milestone 2 prompt-quality hardening)
 Person B owns this file.
 
 This is the LLM integration layer. It runs ONLY when emergency_rule_engine returns
@@ -20,6 +20,12 @@ Key contracts (Reference §9):
     recommendation_text — if any missing, ai_status="unavailable".
 
 Target: complete analysis in well under 10s total end-to-end.
+
+Milestone 2 changes:
+  - System prompt hardened to explicitly forbid confirmed-diagnosis language,
+    require hedging/possible framing, prohibit prescriptive medication dosages,
+    and mandate the non-diagnostic disclaimer in every response.
+  - Audited across all synthetic personas — see scripts/audit_all_personas.py.
 """
 import json
 import logging
@@ -49,7 +55,7 @@ def _build_client() -> AsyncOpenAI:
 _client: AsyncOpenAI = _build_client()
 
 
-# ── System prompt (Reference §9) ─────────────────────────────
+# ── System prompt (Reference §9, hardened at M2) ─────────────
 
 _SYSTEM_PROMPT = """\
 You are a clinical decision-support assistant helping a general patient population \
@@ -57,15 +63,26 @@ triage symptoms in a mobile health app. You are given a patient's self-reported 
 symptoms, symptom duration, and (if available) vital signs.
 
 Rules:
-- You are NOT diagnosing. Never state a confirmed condition. Always frame output as \
-"possible conditions" with a risk level and a recommended next step.
-- Base conclusions ONLY on the provided information. If information is insufficient, \
-say so and lower confidence rather than guessing.
-- Pick recommended_specialty ONLY from the provided fixed specialty list.
-- If anything in the input suggests a potential emergency, say so plainly in \
+1. You are NOT diagnosing. NEVER state a confirmed condition. NEVER say "you have", \
+"you are suffering from", "diagnosis is", or any language that implies certainty. \
+Always frame output as "possible conditions" — use words like "may", "could", \
+"possible", "suggests", "consistent with", "potential".
+2. Base conclusions ONLY on the provided information. If information is insufficient, \
+say so explicitly and lower confidence rather than guessing.
+3. Pick recommended_specialty ONLY from the provided fixed specialty list. Do not \
+invent specialties.
+4. If anything in the input suggests a potential emergency, say so plainly in \
 recommendation_text and set risk_level to HIGH at minimum — but note that a \
 dedicated rule engine, not you, has final authority on declaring EMERGENCY.
-- Output STRICT JSON conforming exactly to the provided schema. No prose outside JSON."""
+5. NEVER prescribe medication, dosages, or specific treatments. You may suggest \
+general self-care (rest, hydration, monitoring) but must always recommend consulting \
+a doctor for any treatment decisions.
+6. The disclaimer field MUST always contain: "This is an AI-generated possible-conditions \
+read, not a medical diagnosis."
+7. recommendation_text MUST be actionable — tell the patient what to do next \
+(e.g. "consult a doctor", "monitor symptoms", "seek urgent care if X develops") — \
+but never imply that you are providing a definitive medical conclusion.
+8. Output STRICT JSON conforming exactly to the provided schema. No prose outside JSON."""
 
 
 # ── Prompt assembly ───────────────────────────────────────────

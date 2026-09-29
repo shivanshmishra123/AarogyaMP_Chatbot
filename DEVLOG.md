@@ -62,6 +62,57 @@
 
 ---
 
+## 2026-09-30 — Milestone 2: Prompt-Quality Hardening & LLM Provider Decision (Person B)
+
+**Who:** Person B (AI & Clinical Logic track) on branch `b/ai-clinical`
+
+**What was done:**
+
+### 1. Prompt-quality hardening (`ai_symptom_engine.py`)
+- Rewrote the LLM system prompt from 5 generic rules to 8 explicit numbered rules:
+  - Rule 1: Explicitly forbids "you have", "you are suffering from", "diagnosis is" and any certainty language. Requires hedging words ("may", "could", "possible", "suggests").
+  - Rule 5 (NEW): Explicitly forbids prescribing medication dosages or specific treatments.
+  - Rule 6 (NEW): Mandates the exact disclaimer text in every response.
+  - Rule 7 (NEW): Requires recommendation_text to be actionable (tell patient what to do next).
+- No frozen schema fields were added or changed — this is purely prompt instruction changes.
+
+### 2. Prompt-quality & recommendation audit (`scripts/audit_all_personas.py`)
+- Created comprehensive audit script that runs ALL 5 testable personas through the live Groq pipeline and systematically checks:
+  - Schema validation (Pydantic)
+  - Risk level correctness
+  - Specialty in fixed list
+  - **Diagnosis language scan**: regex-based detection of 12+ forbidden patterns ("you have", "diagnosed with", "confirmed case of", prescriptive medication language, etc.)
+  - **Hedging language check**: verifies recommendation_text uses appropriate framing
+  - **Disclaimer check**: verifies "not a diagnosis" framing is present
+- Ran full audit: **5/5 PASSED, 0 failures, 0 warnings**
+- Full JSON results saved to `scripts/audit_results.json` for manual review
+
+### 3. LLM provider decision (`LLM_PROVIDER_DECISION.md`)
+- Documented Groq as the chosen LLM provider per WORKPLAN §M2.
+- Documented data-handling rationale: patient symptoms/vitals are sent to Groq (third-party). No PII (name/phone/email) is ever included in prompts.
+- Listed DPDP Act compliance gating items for production launch.
+- Documented zero-code-change swap path to OpenAI, OpenRouter, or local Ollama.
+
+### 4. Verification
+- `pytest tests/test_emergency_rule_engine.py tests/test_specialty_mapper.py -v`: **22/22 passed**
+- `scripts/audit_all_personas.py`: **5/5 PASSED, 0 failures, 0 warnings**
+- Live Groq API confirmed working across all personas
+
+**Files created:**
+- `server/scripts/audit_all_personas.py` — M2 prompt audit script
+- `server/scripts/audit_results.json` — full audit output (JSON)
+- `LLM_PROVIDER_DECISION.md` — LLM provider decision document
+
+**Files modified:**
+- `server/app/services/ai_symptom_engine.py` — system prompt hardened (M2)
+
+**Gotchas / notes for next session:**
+- The `emergency_rules.yaml` now has developer-approved test thresholds (added during CP1 by Person C). These are NOT clinician-approved for production — the clinical sign-off requirement still stands per AGENTS.md Rule 4.
+- The audit script's diagnosis-language scanner is regex-based, not foolproof. Manual review of `audit_results.json` is still recommended for each new persona or prompt change.
+- Groq model `openai/gpt-oss-120b` is the current choice. If Groq rate-limits or deprecates this model, swap `LLM_MODEL` in `.env` — see `LLM_PROVIDER_DECISION.md` for alternatives.
+
+---
+
 ## 2026-09-28 — Architecture Decision: Firebase → ntfy.sh (All Tracks)
 
 **Who:** vedantdadhich (Person C) — decision affects all tracks
