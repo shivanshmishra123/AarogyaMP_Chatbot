@@ -1,0 +1,170 @@
+{
+  "audit_timestamp": "2026-09-29T19:13:45.396922+00:00",
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "warnings": 0
+  },
+  "results": [
+    {
+      "persona_id": "persona_low",
+      "label": "LOW risk — minor cold/fatigue",
+      "timestamp": "2026-09-29T19:13:41.023100+00:00",
+      "checks": {
+        "emergency_engine": {
+          "is_emergency": false,
+          "triggers": []
+        },
+        "ai_status": "ok",
+        "schema_valid": true,
+        "risk_level": "LOW",
+        "confidence": "medium",
+        "recommended_specialty": "General Physician",
+        "possible_conditions": [
+          {
+            "name": "Common cold (viral upper respiratory infection)",
+            "likelihood": "medium"
+          },
+          {
+            "name": "Allergic rhinitis",
+            "likelihood": "low"
+          }
+        ],
+        "supporting_symptoms": [
+          "runny nose",
+          "fatigue"
+        ],
+        "recommendation_text": "Stay hydrated, get plenty of rest, and monitor your symptoms. If you develop fever, worsening congestion, shortness of breath, or chest pain, seek medical attention promptly.",
+        "disclaimer": "This is an AI-generated possible-conditions read, not a medical diagnosis."
+      },
+      "passed": true,
+      "violations": [],
+      "warnings": []
+    },
+    {
+      "persona_id": "persona_moderate",
+      "label": "MODERATE risk — fever + body pain 2 days",
+      "timestamp": "2026-09-29T19:13:42.199110+00:00",
+      "checks": {
+        "emergency_engine": {
+          "is_emergency": false,
+          "triggers": []
+        },
+        "ai_status": "ok",
+        "schema_valid": true,
+        "risk_level": "MODERATE",
+        "confidence": "medium",
+        "recommended_specialty": "General Physician",
+        "possible_conditions": [
+          {
+            "name": "influenza (flu)",
+            "likelihood": "medium"
+          },
+          {
+            "name": "COVID-19",
+            "likelihood": "low"
+          },
+          {
+            "name": "viral syndrome (e.g., other viral infection)",
+            "likelihood": "medium"
+          }
+        ],
+        "supporting_symptoms": [
+          "fever",
+          "headache",
+          "body pain",
+          "weakness"
+        ],
+        "recommendation_text": "Stay hydrated, rest, and monitor your temperature. If fever persists beyond 3 days, worsens, or you develop new symptoms such as shortness of breath, chest pain, or confusion, seek medical evaluation promptly. Consider contacting a primary care provider for a clinical assessment and possible testing (e.g., COVID-19 test).",
+        "disclaimer": "This is an AI-generated possible-conditions read, not a medical diagnosis."
+      },
+      "passed": true,
+      "violations": [],
+      "warnings": []
+    },
+    {
+      "persona_id": "persona_high",
+      "label": "HIGH risk — chest tightness + breathlessness",
+      "timestamp": "2026-09-29T19:13:43.691910+00:00",
+      "checks": {
+        "emergency_engine": {
+          "is_emergency": false,
+          "triggers": []
+        },
+        "ai_status": "ok",
+        "schema_valid": true,
+        "risk_level": "HIGH",
+        "confidence": "medium",
+        "recommended_specialty": "Cardiologist",
+        "possible_conditions": [
+          {
+            "name": "Acute coronary syndrome (e.g., myocardial infarction or unstable angina)",
+            "likelihood": "high"
+          },
+          {
+            "name": "Pulmonary embolism",
+            "likelihood": "medium"
+          },
+          {
+            "name": "Anxiety/panic attack",
+            "likelihood": "low"
+          }
+        ],
+        "supporting_symptoms": [
+          "chest tightness",
+          "breathlessness on exertion",
+          "excessive sweating",
+          "tachycardia",
+          "elevated blood pressure",
+          "low-normal oxygen saturation"
+        ],
+        "recommendation_text": "Seek immediate medical attention by calling emergency services or going to the nearest emergency department, as chest tightness, shortness of breath, sweating, and rapid heart rate may indicate a serious cardiac event. Do not delay care.",
+        "disclaimer": "This is an AI-generated possible-conditions read, not a medical diagnosis."
+      },
+      "passed": true,
+      "violations": [],
+      "warnings": []
+    },
+    {
+      "persona_id": "persona_emergency_vitals",
+      "label": "EMERGENCY — vitals-triggered (SpO2 critical)",
+      "timestamp": "2026-09-29T19:13:45.396922+00:00",
+      "checks": {
+        "emergency_engine": {
+          "is_emergency": true,
+          "triggers": [
+            {
+              "rule_id": "EMG_VITALS_CRITICAL",
+              "description": "Vitals indicate potential emergency: Heart rate 140 bpm exceeds 130 bpm; SpO2 85% below 90%"
+            }
+          ]
+        },
+        "ai_skipped": true
+      },
+      "passed": true,
+      "violations": [],
+      "warnings": []
+    },
+    {
+      "persona_id": "persona_emergency_keyword",
+      "label": "EMERGENCY — keyword-triggered (severe chest pain)",
+      "timestamp": "2026-09-29T19:13:45.396922+00:00",
+      "checks": {
+        "emergency_engine": {
+          "is_emergency": true,
+          "triggers": [
+            {
+              "rule_id": "EMG_KEYWORD_MATCH",
+              "description": "Patient description matches emergency keywords: severe chest pain, cannot breathe"
+            }
+          ]
+        },
+        "ai_skipped": true
+      },
+      "passed": true,
+      "violations": [],
+      "warnings": []
+    }
+  ]
+}
