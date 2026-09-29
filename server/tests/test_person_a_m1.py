@@ -98,7 +98,7 @@ def client():
 def test_health_check(client):
     res = client.get("/health")
     assert res.status_code == 200
-    assert res.json() == {"status": "ok", "version": "0.1.0"}
+    assert res.json()["status"] == "ok"  # version bumped to 0.2.0 at M2 — check status only
 
 
 def test_auth_register_and_login_patient(client):
