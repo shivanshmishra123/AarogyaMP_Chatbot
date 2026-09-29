@@ -4,6 +4,56 @@
 
 ---
 
+## 2026-09-30 — Checkpoint 2: Three-Track M2 Integration (Person C)
+
+**Who:** Person C (vedantdadhich) — integration lead
+
+**What was done:**
+
+### Integration strategy
+- Created `checkpoint-2` branch from `c/app` (all M2 Flutter fixes, UX bug fixes, and Android back-gesture fixes already committed there).
+- Determined that `origin/shivansh` diverged from its own M1 base (`272c4f6`) — it added **server-only** changes (admin ops, consultation close, cursor pagination, WS push notification), and the scary-looking "Flutter deletions" in its diff vs `main` were artifacts of divergence from a pre-checkpoint-1 ancestor, **not intentional Flutter regressions**. Verified by running `git diff 272c4f6 origin/shivansh -- app/lib/` → empty.
+- Merged `origin/b/ai-clinical` with `--no-ff --no-commit`; only `DEVLOG.md` conflicted (both tracks added top entries). Resolved manually keeping both, Person C first then Person B (newest-at-top rule).
+- Cherry-picked shivansh's 5 server files using `git checkout origin/shivansh -- <files>` to avoid pulling his stale Flutter scaffold: `server/app/main.py`, `server/app/routers/admin.py`, `server/app/routers/consultations.py`, `server/app/services/notifications.py`, `server/tests/test_person_a_m2.py`.
+- Fixed stale `test_person_a_m1.py::test_health_check` which hardcoded version `0.1.0`; shivansh bumped to `0.2.0` in M2. Updated assertion to check `status` only.
+
+### What's in checkpoint-2
+**Flutter app (c/app, unmodified):**
+- Real JWT auth, doctor directory w/ location, live WebSocket chat, doctor dashboard queue
+- Per-doctor thread reuse via `AuthService._doctorConsultations` — no more lost history
+- GoRouter fix (AuthRefreshListenable) — no more context teardown on state update
+- Android back gesture polish — no white flash, no window shrink
+- ConsultationHistoryScreen with Resume Chat
+
+**Server (Person A M2):**
+- `POST /api/admin/doctors/{id}/verify` (idempotent), `/reject`, `/reset`, `/pending`, full list with filter
+- `POST /api/consultations/{id}/close` — doctor-only
+- Cursor-based pagination on `GET /consultations/{id}/messages`
+- WS: sends push to doctor on patient message, push to patient on doctor reply
+- Unverified doctor blocked from receiving consultations at `POST /api/consultations`
+- Device token registration endpoint `POST /api/devices/register`
+
+**AI/Clinical (Person B M2):**
+- Prompt hardened with 8 explicit rules (forbidden diagnosis language, required hedging, required disclaimer, no medication dosing)
+- Full persona audit script (`scripts/audit_all_personas.py`) — 5/5 PASSED
+- `LLM_PROVIDER_DECISION.md` documenting Groq rationale + DPDP compliance notes
+
+### Verification results
+```
+flutter analyze:                           0 errors, 31 info/style only
+flutter test:                              8/8 passed
+pytest (unit + M1, SQLite):               29/29 passed
+pytest (M2 API, SQLite):                  18/18 passed
+```
+
+**Gotchas / notes for next session:**
+- `notifications.py` still references FCM in comments/docstring but **is a safe stub** — it no-ops when `FCM_SERVER_KEY` is absent (which it always is). Do not wire FCM; follow ntfy migration path in M4 per DEVLOG 2026-09-28.
+- `test_person_a_m2.py` must be run in its own pytest invocation (or with `DATABASE_URL=sqlite:///...` env set before any other test module is imported), otherwise SQLAlchemy engine caching causes DB URL collisions.
+- Flutter `analyze` shows 31 info warnings; none are errors. `use_build_context_synchronously` in `vitals_entry_screen.dart` (lines 278–280) should be fixed in M3 — it's guarded correctly for runtime safety but Dart analyzer can't verify that.
+- The `checkpoint-2` branch is pushed to `origin`. All three track branches (`shivansh`, `b/ai-clinical`, `c/app`) are now fully represented in it.
+
+---
+
 ## 2026-09-29 — M2 Integration Testing & UX Bug Fixes (Person C)
 
 **Who:** Person C (Mobile App)
