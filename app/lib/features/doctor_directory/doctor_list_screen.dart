@@ -59,10 +59,10 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
   void initState() {
     super.initState();
     _selectedSpecialty = widget.initialSpecialty;
+    // Always initialize _doctorsFuture synchronously so build() never encounters uninitialized late field
+    _loadDoctors();
     if (!_useMocks) {
       _initLocation();
-    } else {
-      _loadDoctors();
     }
   }
 
@@ -70,36 +70,47 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
   Future<void> _initLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!mounted) return;
       if (!serviceEnabled) {
-        setState(() => _locationDenied = true);
-        _loadDoctors();
+        setState(() {
+          _locationDenied = true;
+          _loadDoctors();
+        });
         return;
       }
 
       LocationPermission permission = await Geolocator.checkPermission();
+      if (!mounted) return;
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
+        if (!mounted) return;
       }
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        setState(() => _locationDenied = true);
-        _loadDoctors();
+        setState(() {
+          _locationDenied = true;
+          _loadDoctors();
+        });
         return;
       }
 
       final pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.low, // low = faster, sufficient for ~km radius
       );
+      if (!mounted) return;
       setState(() {
         _lat = pos.latitude;
         _lng = pos.longitude;
         _locationDenied = false;
+        _loadDoctors();
       });
     } catch (_) {
-      // Any unexpected error — still load doctors without coords
-      setState(() => _locationDenied = true);
+      if (!mounted) return;
+      setState(() {
+        _locationDenied = true;
+        _loadDoctors();
+      });
     }
-    _loadDoctors();
   }
 
   void _loadDoctors() {
