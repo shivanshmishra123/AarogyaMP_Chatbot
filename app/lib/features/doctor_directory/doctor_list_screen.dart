@@ -477,7 +477,22 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
       return;
     }
 
-    // Live: create consultation first, then navigate
+    // Live: check if consultation already exists with this doctor (reopen existing thread)
+    final existingConsultId =
+        ref.read(authProvider.notifier).getConsultationIdForDoctor(doc.id);
+    if (existingConsultId != null && existingConsultId.isNotEmpty) {
+      ref.read(authProvider.notifier).setLastConsultation(
+            consultationId: existingConsultId,
+            doctorName: doc.name,
+          );
+      context.push(
+        Routes.chat.replaceAll(':consultationId', existingConsultId),
+        extra: {'doctorName': doc.name, 'doctorId': doc.id},
+      );
+      return;
+    }
+
+    // No existing consultation: create consultation on server, then navigate
     setState(() => _isCreatingConsult = true);
     try {
       final auth = ref.read(authProvider);
@@ -488,9 +503,11 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
             doctorId: doc.id,
             symptomReportId: symptomReportId,
           );
-      ref.read(authProvider.notifier).setLastConsultation(
+      ref.read(authProvider.notifier).saveDoctorConsultation(
+            doctorId: doc.id,
             consultationId: consultationId,
             doctorName: doc.name,
+            specialty: doc.specialty,
           );
       if (!mounted) return;
       context.push(

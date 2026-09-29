@@ -184,6 +184,59 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Check if an active consultation already exists with this doctor.
+  String? getConsultationIdForDoctor(String doctorId) {
+    if (_useMocks) return null;
+    _initService();
+    return _authService?.getConsultationIdForDoctor(doctorId);
+  }
+
+  /// Save consultation for a specific doctor so future chats reuse the existing thread.
+  void saveDoctorConsultation({
+    required String doctorId,
+    required String consultationId,
+    required String doctorName,
+    String? specialty,
+  }) {
+    state = state.copyWith(
+      lastConsultationId: consultationId,
+      lastConsultationDoctorName: doctorName,
+    );
+    if (!_useMocks && _prefs != null) {
+      _initService();
+      _authService?.saveDoctorConsultation(
+        doctorId: doctorId,
+        consultationId: consultationId,
+        doctorName: doctorName,
+        specialty: specialty,
+      );
+    }
+  }
+
+  /// List all past consultations sorted by most recent.
+  List<Map<String, dynamic>> getConsultationHistory() {
+    if (_useMocks) {
+      return [
+        {
+          'consultationId': 'mock-consult-001',
+          'doctorName': 'Dr. Sunita Verma',
+          'doctorId': 'doc-001',
+          'specialty': 'General Medicine',
+          'updatedAt': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
+        }
+      ];
+    }
+    _initService();
+    final map = _authService?.getDoctorConsultations() ?? {};
+    final list = map.values.whereType<Map<String, dynamic>>().toList();
+    list.sort((a, b) {
+      final aTime = DateTime.tryParse(a['updatedAt']?.toString() ?? '') ?? DateTime(2000);
+      final bTime = DateTime.tryParse(b['updatedAt']?.toString() ?? '') ?? DateTime(2000);
+      return bTime.compareTo(aTime);
+    });
+    return list;
+  }
+
   Future<void> logout() async {
     if (!_useMocks && _prefs != null) {
       _initService();

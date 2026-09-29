@@ -31,6 +31,7 @@ class AuthService {
   static const _kUserId = 'auth_user_id';
   static const _kLastConsultationId = 'auth_last_consultation_id';
   static const _kLastConsultationDoctorName = 'auth_last_consultation_doctor_name';
+  static const _kDoctorConsultations = 'auth_doctor_consultations_map';
 
   AuthService(this._dio, this._prefs);
 
@@ -172,6 +173,46 @@ class AuthService {
     await _prefs.setString(_kLastConsultationDoctorName, doctorName);
   }
 
+  /// Get map of doctorId -> consultation details.
+  Map<String, dynamic> getDoctorConsultations() {
+    final raw = _prefs.getString(_kDoctorConsultations);
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      return jsonDecode(raw) as Map<String, dynamic>;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Find existing consultation ID for a doctor.
+  String? getConsultationIdForDoctor(String doctorId) {
+    final map = getDoctorConsultations();
+    final entry = map[doctorId];
+    if (entry is Map<String, dynamic>) {
+      return entry['consultationId'] as String?;
+    }
+    return null;
+  }
+
+  /// Save consultation for a specific doctor so returning to them reuses the thread.
+  Future<void> saveDoctorConsultation({
+    required String doctorId,
+    required String consultationId,
+    required String doctorName,
+    String? specialty,
+  }) async {
+    final map = getDoctorConsultations();
+    map[doctorId] = {
+      'consultationId': consultationId,
+      'doctorName': doctorName,
+      'doctorId': doctorId,
+      'specialty': specialty,
+      'updatedAt': DateTime.now().toIso8601String(),
+    };
+    await _prefs.setString(_kDoctorConsultations, jsonEncode(map));
+    await saveLastConsultation(consultationId, doctorName);
+  }
+
   /// Clear all stored auth data (logout).
   Future<void> clearSession() async {
     await Future.wait([
@@ -182,6 +223,7 @@ class AuthService {
       _prefs.remove(_kUserId),
       _prefs.remove(_kLastConsultationId),
       _prefs.remove(_kLastConsultationDoctorName),
+      _prefs.remove(_kDoctorConsultations),
     ]);
   }
 }

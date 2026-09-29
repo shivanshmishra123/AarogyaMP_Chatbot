@@ -17,6 +17,8 @@
    - Updated `chat_service.dart`: Handles HTTP 404 from `getMessages` and WebSocket close code 1008 directly without infinite reconnect loops.
    - Updated `chat_screen.dart`: Shows clean "Disconnected" status and an action button "Find Doctor" if consultation room does not exist.
    - Fixed `app_router.dart`: Replaced `ref.watch(authProvider)` with `AuthRefreshListenable` using `refreshListenable`. Previously, modifying `AuthState` (such as `setLastConsultation`) caused GoRouter to be completely re-instantiated and tore down the Navigator context before `context.push(Routes.chat...)` could execute, leaving the user on the doctor profile. GoRouter instance is now preserved.
+   - Fixed Multi-Doctor Chat History: Previously, tapping "Chat" on a doctor's profile always triggered `POST /api/consultations`, creating a fresh room and leaving previous messages in the older room. Implemented persistent `_doctorConsultations` mapping in `AuthService` and `AuthNotifier`. Tapping Chat on a doctor now reopens the existing active consultation room for that doctor and pulls previous message history via `GET /api/consultations/{id}/messages`.
+   - Wired `ConsultationHistoryScreen` (`/history`): Replaced M1 placeholder with a full history view listing previous doctor consultations with dates, specialties, and one-tap "Resume Chat" buttons.
 2. **Form Validation & Input Polish:**
    - Added `LengthLimitingTextInputFormatter(10)` and `digitsOnly` to phone fields on Login & Register.
    - Fixed white text contrast on emergency red SnackBar errors.
