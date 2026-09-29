@@ -25,19 +25,12 @@ class AssessmentResultScreen extends StatelessWidget {
 
     final riskColor = _riskColor(result.riskLevel);
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) {
-          context.go(Routes.patientHome);
-        }
-      },
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(
-          title: const Text('Assessment Result'),
-          leading: BackButton(onPressed: () => context.go(Routes.patientHome)),
-        ),
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Assessment Result'),
+        leading: BackButton(onPressed: () => context.go(Routes.patientHome)),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -189,9 +182,8 @@ class AssessmentResultScreen extends StatelessWidget {
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Color _riskColor(String level) {
     switch (level.toUpperCase()) {

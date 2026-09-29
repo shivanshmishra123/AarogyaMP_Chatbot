@@ -24,7 +24,9 @@
    - Fixed white text contrast on emergency red SnackBar errors.
 3. **Navigation & Android Back Gesture:**
    - Updated `vitals_entry_screen.dart` to push rather than replace routes, preserving back navigation.
-   - Added `PopScope` to `assessment_result_screen.dart` preventing accidental app exits.
+   - Removed `PopScope(canPop: false)` from `assessment_result_screen.dart`: previously blocked standard route pop and caused Android 14+ Predictive Back to scale down the window and preview app exit (flashing white background). Back gesture and button now pop cleanly without edge flash.
+   - Set `android:enableOnBackInvokedCallback="false"` in `AndroidManifest.xml` to prevent OS window-shrink preview when holding back gestures on non-root screens.
+   - Configured `NormalTheme` in `styles.xml` with `@color/app_background` (`#E7FEFC`) rather than default pure white `?android:colorBackground`, eliminating any white flash during activity transitions.
    - Added Logout action inside profile bottom sheet on home screen.
 4. **Card Rendering & Overflow Fixes:**
    - Replaced invalid `BoxDecoration` (non-uniform border with `borderRadius`) in `SectionCard` and `AssessmentResultScreen` with a clean `Stack` indicator.

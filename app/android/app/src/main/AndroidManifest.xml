@@ -9,6 +9,7 @@
         android:label="AarogyaMP"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="false"
         android:usesCleartextTraffic="true">
 
         <!-- Disable Impeller on Android to avoid MediaTek / Mali GPU BLASTBufferQueue driver lockup -->
