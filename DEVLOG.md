@@ -16,6 +16,7 @@
    - Updated `patient_home_screen.dart` bottom nav: If active consultation exists, navigates directly to it; if none exists, displays a modal sheet explaining consultations are started with a verified doctor and provides a "Find Doctors" button.
    - Updated `chat_service.dart`: Handles HTTP 404 from `getMessages` and WebSocket close code 1008 directly without infinite reconnect loops.
    - Updated `chat_screen.dart`: Shows clean "Disconnected" status and an action button "Find Doctor" if consultation room does not exist.
+   - Fixed `app_router.dart`: Replaced `ref.watch(authProvider)` with `AuthRefreshListenable` using `refreshListenable`. Previously, modifying `AuthState` (such as `setLastConsultation`) caused GoRouter to be completely re-instantiated and tore down the Navigator context before `context.push(Routes.chat...)` could execute, leaving the user on the doctor profile. GoRouter instance is now preserved.
 2. **Form Validation & Input Polish:**
    - Added `LengthLimitingTextInputFormatter(10)` and `digitsOnly` to phone fields on Login & Register.
    - Fixed white text contrast on emergency red SnackBar errors.

@@ -492,13 +492,13 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
             consultationId: consultationId,
             doctorName: doc.name,
           );
-      if (!context.mounted) return;
+      if (!mounted) return;
       context.push(
         Routes.chat.replaceAll(':consultationId', consultationId),
         extra: {'doctorName': doc.name, 'doctorId': doc.id},
       );
     } catch (e) {
-      if (!context.mounted) return;
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Could not start consultation: ${_shortError(e)}'),

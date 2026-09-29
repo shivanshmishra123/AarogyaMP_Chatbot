@@ -40,12 +40,38 @@ class Routes {
   static const String pendingVerification = '/pending-verification';
 }
 
+// Helper listenable to notify GoRouter only when auth status / role changes,
+// preventing router re-creation and route-stack resets on incidental state updates.
+class AuthRefreshListenable extends ChangeNotifier {
+  bool? _isAuth;
+  UserRole? _role;
+  bool? _isDoctorVerified;
+
+  void update(AuthState state) {
+    if (_isAuth != state.isAuthenticated ||
+        _role != state.role ||
+        _isDoctorVerified != state.isDoctorVerified) {
+      _isAuth = state.isAuthenticated;
+      _role = state.role;
+      _isDoctorVerified = state.isDoctorVerified;
+      notifyListeners();
+    }
+  }
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
+  final refreshNotifier = AuthRefreshListenable();
+  // Listen to auth changes and only notify GoRouter on critical auth transitions
+  ref.listen<AuthState>(authProvider, (_, next) {
+    refreshNotifier.update(next);
+  });
+  ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
     initialLocation: Routes.splash,
+    refreshListenable: refreshNotifier,
     redirect: (context, state) {
+      final authState = ref.read(authProvider);
       final isAuth = authState.isAuthenticated;
       final loc = state.uri.toString();
 
