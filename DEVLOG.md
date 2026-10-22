@@ -4,6 +4,55 @@
 
 ---
 
+## 2026-10-22 — Local AI Migration: Ollama + ntfy Docker Stack (Person C)
+
+**Who:** Person C (vedantdadhich) — infra migration
+
+**What was done:**
+- Teacher feedback: external API calls (Groq) not acceptable — must use local AI.
+- **Zero code changes** to `ai_symptom_engine.py` — Ollama exposes the same OpenAI-compatible API at `http://ollama:11434/v1`. Only the three `LLM_*` env vars change.
+- Rewrote `server/docker-compose.yml` to include: Ollama (local LLM), PostgreSQL (production-grade DB), ntfy (self-hosted push), and the API server. All wired together — `docker compose up` is the only command anyone needs.
+- Added `ollama-pull` init container that pulls the model on first run, subsequent restarts skip the download.
+- Created `server/ntfy.yml` — ntfy server config (no auth needed for dev/demo, can tighten for production).
+- Created `docs/LOCAL_AI_SETUP.md` — full setup guide with model recommendations per RAM tier.
+- Updated `LLM_PROVIDER_DECISION.md` to reflect Ollama as primary decision.
+- Updated `server/.env.example` — no external API keys, clear model selection instructions.
+
+**Model recommendations:**
+- **Default (all laptops & servers):** `llama3.1:8b` (~4.7 GB, 2-5s response time, 4 parallel slots)
+- 8-16 GB low-RAM test: `llama3.2:3b-instruct` (~2.0 GB, 1-3s)
+- 64 GB server: `llama3.1:70b-instruct-q4_K_M` (~40 GB, deep clinical precision)
+- 128 GB server: `qwen2.5:72b-instruct-q8_0` (~80 GB, best multilingual/Hindi support)
+- **Single-command override:** Users can override the model on the fly via `OLLAMA_MODEL=<tag> docker compose up -d` without editing any config.
+
+**What Person A still needs to do:**
+- Wire ntfy in `server/app/services/notifications.py` — replace FCM `_send_fcm` calls with ntfy HTTP POST calls (see `docs/LOCAL_AI_SETUP.md` §"What PERSON A needs to do" for exact code).
+- Add `NTFY_BASE_URL: str = "http://localhost:8080"` to `server/app/config.py`.
+
+**Gotchas:**
+- On first `docker compose up`, the ollama-pull container downloads ~26-80 GB depending on model. This takes 10-30 min on a good connection. The API server starts immediately but LLM calls will fail until the model is ready — the `ai_status="unavailable"` fallback path handles this gracefully.
+- `LLM_TIMEOUT_SECONDS` is set to 120 (vs 30 for Groq). CPU-only 70B inference takes 15-40s per request. With GPU this drops to 3-8s.
+- ntfy topics follow pattern `aarogyamp-doctor-{id}` and `aarogyamp-patient-{id}` — Flutter app needs to subscribe to these instead of FCM.
+
+---
+
+## 2026-09-30 — Demo Run Preparation & Consultation History Routing Fix (Person C)
+
+**Who:** Person C (vedantdadhich) — Mobile App & Demo Prep
+
+**What was done:**
+- Fixed Consultation History routing collision: `app_router.dart` was importing `doctor_dashboard_screens.dart` which exported an unlinked dummy `ConsultationHistoryScreen` showing hardcoded "No past consultations yet.". Fixed by hiding it and importing the real `features/history/consultation_history_screen.dart`.
+- Fixed Dart nested Map generic casting in `auth_provider.dart`: `jsonDecode` produces nested maps that fail `whereType<Map<String, dynamic>>()`; replaced with explicit `Map<String, dynamic>.from()` extraction.
+- Made `ConsultationHistoryScreen` reactive to auth changes by adding `ref.watch(authProvider)`.
+- Verified live SQLite database (`demo.db`) seeded with all 8 verified synthetic doctors and tested `/api/doctors`.
+- Verified end-to-end WebSocket chat & consultation records on Android test phone over USB via `adb reverse tcp:8000 tcp:8000`.
+
+**Gotchas / notes for next session:**
+- Whenever Android device is disconnected and reconnected via USB, run `adb reverse tcp:8000 tcp:8000` once before launching the Flutter app with `--dart-define=API_BASE_URL=http://localhost:8000`.
+- The SQLite database persists at `server/storage/demo.db`; doctor seeding does not need to be re-run between sessions.
+
+---
+
 ## 2026-09-30 — Checkpoint 2: Three-Track M2 Integration (Person C)
 
 **Who:** Person C (vedantdadhich) — integration lead

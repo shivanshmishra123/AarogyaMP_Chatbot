@@ -1,0 +1,25 @@
+# ntfy server configuration for AarogyaMP
+# Self-hosted push notification server — no external accounts needed
+# Reference: https://docs.ntfy.sh/config/
+
+# Base URL (change to your server's LAN IP or domain for production)
+base-url: http://localhost:8080
+
+# Listen on all interfaces inside Docker
+listen-http: :80
+
+# Cache messages for 12 hours (reconnecting clients catch up)
+cache-file: /var/cache/ntfy/cache.db
+cache-duration: 12h
+
+# Attachment support (for file sharing, if needed later)
+attachment-cache-dir: /var/cache/ntfy/attachments
+attachment-total-size: 1G
+attachment-file-size: 5M
+
+# Allow unauthenticated access to topics (patients don't need accounts)
+# In production, restrict with auth-file + user accounts
+auth-default-access: read-write
+
+# Logging
+log-level: warn

@@ -15,6 +15,7 @@ class ConsultationHistoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(authProvider);
     final history = ref.read(authProvider.notifier).getConsultationHistory();
 
     return Scaffold(

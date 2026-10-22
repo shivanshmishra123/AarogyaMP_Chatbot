@@ -228,7 +228,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
     _initService();
     final map = _authService?.getDoctorConsultations() ?? {};
-    final list = map.values.whereType<Map<String, dynamic>>().toList();
+    final list = <Map<String, dynamic>>[];
+    for (final v in map.values) {
+      if (v is Map) {
+        list.add(Map<String, dynamic>.from(v));
+      }
+    }
     list.sort((a, b) {
       final aTime = DateTime.tryParse(a['updatedAt']?.toString() ?? '') ?? DateTime(2000);
       final bTime = DateTime.tryParse(b['updatedAt']?.toString() ?? '') ?? DateTime(2000);

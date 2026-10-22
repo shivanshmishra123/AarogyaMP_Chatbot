@@ -1,6 +1,16 @@
 version: "3.9"
 
+# AarogyaMP — Full Self-Hosted Stack
+# Includes: API server, PostgreSQL, Ollama (local LLM), ntfy (push notifications)
+# Usage:
+#   docker compose up -d                        # start everything with default llama3.1:8b (~4.7GB)
+#   OLLAMA_MODEL=llama3.1:70b-instruct-q4_K_M docker compose up -d  # or override with one command!
+#   docker compose logs -f api                  # watch server logs
+# On first run, Ollama pulls the model (~4.7GB for 8b). Subsequent restarts are instant.
+
 services:
+
+  # ── PostgreSQL ────────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     environment:
@@ -16,21 +26,116 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
-  server:
+  # ── Ollama — Local LLM Server ─────────────────────────────────────────────────
+  # Exposes an OpenAI-compatible API at http://ollama:11434/v1
+  # The api service is pre-configured to talk to this endpoint via LLM_BASE_URL.
+  #
+  # MODEL CHOICE (controlled by OLLAMA_MODEL env var, default: llama3.1:8b):
+  #   Default:      llama3.1:8b (~4.7 GB, 2-5s response, runs smoothly on 16GB-32GB machines)
+  #   High-res:     llama3.1:70b-instruct-q4_K_M (~40 GB, requires 64GB+ RAM or GPU)
+  #   Multilingual: qwen2.5:72b-instruct-q8_0 (~80 GB, requires 128GB RAM or GPU)
+  #
+  # The init container below pulls the model on first run.
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      # Number of layers to keep in memory (0 = auto / max)
+      - OLLAMA_NUM_PARALLEL=4        # max concurrent requests
+      - OLLAMA_MAX_QUEUE=20          # queue depth for 100-200 peak users
+      - OLLAMA_KEEP_ALIVE=24h        # keep model warm in RAM
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s             # give time for model pull on first run
+    restart: unless-stopped
+
+  # ── Ollama model pull — runs once, exits when done ───────────────────────────
+  ollama-pull:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.1:8b}
+    entrypoint: >
+      sh -c "
+        echo 'Waiting for Ollama daemon...';
+        until ollama list >/dev/null 2>&1; do
+          export OLLAMA_HOST=http://ollama:11434;
+          sleep 3;
+        done;
+        echo 'Pulling model: $$OLLAMA_MODEL';
+        OLLAMA_HOST=http://ollama:11434 ollama pull $$OLLAMA_MODEL;
+        echo 'Model ready.';
+      "
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+
+  # ── ntfy — Self-Hosted Push Notifications ────────────────────────────────────
+  # Simple HTTP-based push; the Flutter app subscribes to topics.
+  # No Firebase, no Google, no external accounts needed.
+  # Dashboard at: http://localhost:8080
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    command: serve
+    ports:
+      - "8080:80"
+    volumes:
+      - ntfy_data:/var/cache/ntfy
+      - ./ntfy.yml:/etc/ntfy/server.yml:ro
+    environment:
+      - TZ=Asia/Kolkata
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── AarogyaMP API Server ──────────────────────────────────────────────────────
+  api:
     build: .
     ports:
       - "8000:8000"
     environment:
+      # Database (Postgres in Docker)
       - DATABASE_URL=postgresql+psycopg://aarogya:aarogya@postgres:5432/aarogyamp
+      # LLM — points to local Ollama, NO external API key needed
+      - LLM_BASE_URL=http://ollama:11434/v1
+      - LLM_API_KEY=ollama                   # Ollama ignores this but OpenAI SDK requires non-empty
+      - LLM_MODEL=${OLLAMA_MODEL:-llama3.1:8b}
+      - LLM_TIMEOUT_SECONDS=120              # local inference is slower than Groq
+      # Push via ntfy
+      - NTFY_BASE_URL=http://ntfy:80
+      # Other settings from .env
     env_file:
       - .env
     depends_on:
       postgres:
         condition: service_healthy
+      ollama:
+        condition: service_healthy
+      ntfy:
+        condition: service_healthy
     volumes:
       - ./storage:/app/storage
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    command: >
+      sh -c "
+        python scripts/seed_doctors.py --quiet &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8000
+      "
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+  ollama_data:       # persists downloaded models (~26-80 GB depending on model)
+  ntfy_data:

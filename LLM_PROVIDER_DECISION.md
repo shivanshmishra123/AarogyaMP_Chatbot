@@ -5,13 +5,16 @@
 
 ---
 
-## Decision: Groq (Hosted)
+## Decision: Local Ollama (Self-Hosted)
 
-**Provider:** Groq  
-**Endpoint:** `https://api.groq.com/openai/v1` (OpenAI-compatible)  
-**Model:** `openai/gpt-oss-120b`  
-**Decision date:** 2026-09-30  
-**Decision maker:** Person B (AI & Clinical Logic track)
+> **Updated 2026-10-22:** Teacher requirement — no external API calls. Migrated from Groq to
+> self-hosted Ollama. See `docs/LOCAL_AI_SETUP.md` for the full setup guide.
+
+**Provider:** Ollama (self-hosted in Docker)  
+**Endpoint:** `http://ollama:11434/v1` (OpenAI-compatible — zero code changes)  
+**Model:** `llama3.1:8b` (default, ~4.7 GB; overrides available up to 70B) — see `docs/LOCAL_AI_SETUP.md`  
+**Decision date updated:** 2026-10-22  
+**Decision maker:** Person C (infra migration)
 
 ---
 
@@ -62,23 +65,24 @@ This is **sensitive personal health data** under India's Digital Personal Data P
 
 ---
 
-## Swap path (if provider needs to change)
+## Swap path
 
-The entire LLM integration is behind three environment variables:
+The entire LLM integration is behind three environment variables in `server/.env`:
 
 ```env
-LLM_BASE_URL=https://api.groq.com/openai/v1
-LLM_API_KEY=<key>
-LLM_MODEL=openai/gpt-oss-120b
+LLM_BASE_URL=http://ollama:11434/v1
+LLM_API_KEY=ollama
+LLM_MODEL=llama3.1:70b-instruct-q4_K_M
 ```
 
-To switch to any other OpenAI-compatible provider:
+To switch to any other OpenAI-compatible provider (zero code changes):
 
 | Target | Change |
 |---|---|
-| **OpenAI** | `LLM_BASE_URL=https://api.openai.com/v1`, `LLM_MODEL=gpt-4o-mini` |
-| **OpenRouter** | `LLM_BASE_URL=https://openrouter.ai/api/v1`, `LLM_MODEL=<any supported model>` |
-| **Local Ollama** | `LLM_BASE_URL=http://localhost:11434/v1`, `LLM_MODEL=llama3.1:8b`, `LLM_API_KEY=` (blank) |
+| **Local Ollama (current)** | `LLM_BASE_URL=http://ollama:11434/v1`, `LLM_MODEL=llama3.1:70b-instruct-q4_K_M`, `LLM_API_KEY=ollama` |
+| **Different local model** | Change `LLM_MODEL` + set `OLLAMA_MODEL` env var (see `docs/LOCAL_AI_SETUP.md`) |
+| **Groq (fallback if HW unavailable)** | `LLM_BASE_URL=https://api.groq.com/openai/v1`, `LLM_MODEL=openai/gpt-oss-120b`, `LLM_API_KEY=<groq_key>` |
+| **OpenAI** | `LLM_BASE_URL=https://api.openai.com/v1`, `LLM_MODEL=gpt-4o-mini`, `LLM_API_KEY=<key>` |
 
 Zero code changes required. The `ai_symptom_engine.py` uses the standard `openai` Python SDK which works with any compatible endpoint.
 

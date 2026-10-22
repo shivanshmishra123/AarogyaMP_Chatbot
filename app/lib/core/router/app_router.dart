@@ -15,7 +15,9 @@ import '../../features/assessment/assessment_result_screen.dart';
 import '../../features/assessment/emergency_screen.dart';
 import '../../features/doctor_directory/doctor_list_screen.dart';
 import '../../features/chat/chat_screen.dart';
-import '../../features/doctor_dashboard/doctor_dashboard_screens.dart';
+import '../../features/doctor_dashboard/doctor_dashboard_screens.dart'
+    hide ConsultationHistoryScreen;
+import '../../features/history/consultation_history_screen.dart';
 import '../../core/models/assessment_model.dart';
 import '../../core/models/doctor_model.dart';
 

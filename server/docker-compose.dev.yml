@@ -1,0 +1,22 @@
+# AarogyaMP — Dev override for local MacBooks (16GB RAM)
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# OR just set OLLAMA_MODEL=llama3.2:3b in your .env and run:
+#    docker compose up
+
+services:
+  ollama:
+    environment:
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_MAX_QUEUE=4
+      - OLLAMA_KEEP_ALIVE=1h
+
+  ollama-pull:
+    environment:
+      # Small 3B model — fits in 16GB M4 Air, ~2GB download, 3-6s inference
+      - OLLAMA_MODEL=llama3.2:3b-instruct
+
+  api:
+    environment:
+      - LLM_MODEL=llama3.2:3b-instruct
+      - LLM_TIMEOUT_SECONDS=30
