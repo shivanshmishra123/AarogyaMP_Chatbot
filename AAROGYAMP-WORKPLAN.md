@@ -83,7 +83,7 @@ Each milestone below ends with a **"Kickoff prompt"** you can paste into your AI
 | ✅ CP1 — First integration | Real assessment submission → real risk level on a real (non-mocked) app screen | Patient can submit symptoms+vitals and see a real (not mocked) AI Assessment card |
 | M2 — Doctor loop | Doctor directory (real data), doctor login/verification, call/email deep links, chat (WS) wired end-to-end | Patient can go from assessment → find a doctor → chat, live |
 | ✅ CP2 — Full E2E | Both roles live: patient submits → sees assessment → contacts doctor → doctor sees queue + AI card → responds in chat | Full loop works with synthetic personas + synthetic doctor directory |
-| M3 — Hardening & compliance pass | Timeouts/error paths, emergency-path regression tests green, disclaimer copy audited everywhere, data-handling review against Reference §18 | No confirmed-diagnosis language anywhere; emergency path tested against every synthetic emergency persona |
+| ✅ CP3 — Hardening & compliance pass | Timeouts/error paths, emergency-path regression tests green, disclaimer copy audited everywhere, data-handling review against Reference §18 | No confirmed-diagnosis language anywhere; emergency path tested against every synthetic emergency persona |
 | M4 — Beta readiness | Deployed backend, TestFlight/internal-track build, real doctor onboarding process defined, clinical sign-off obtained on `emergency_rules.yaml` | Ready to onboard a small real pilot group |
 
 There's no fixed hour budget — move to the next milestone when the previous one's exit criteria are met, not on a clock. Keep `main` releasable at every checkpoint even if features beyond it aren't built yet.
@@ -95,25 +95,25 @@ There's no fixed hour budget — move to the next milestone when the previous on
 ### MILESTONE 0 — Setup
 
 **ALL (together, first):**
-- [ ] Create repo; add `AAROGYAMP-REFERENCE.md` + `AAROGYAMP-WORKPLAN.md` + `AGENTS.md` at root
-- [ ] Create branch structure (`a/backend`, `b/ai-clinical`, `c/app`)
-- [ ] Create `.gitignore`: `.env`, `**/build/`, `.dart_tool/`, `server/storage/`, `*.db`
-- [ ] **Contract freeze announcement** — confirm everyone has read Reference §6, §9, §11
-- [ ] Commit `server/tests/fixtures/personas.json` — at minimum: one LOW, one MODERATE, one HIGH, one EMERGENCY (vitals-triggered), one EMERGENCY (keyword-triggered), one invalid-vitals persona (per Reference §16)
-- [ ] Commit `app/lib/mocks/` — mock assessment responses (one per persona above) + a mock doctor directory (5–10 synthetic verified doctors across specialties)
+- [x] Create repo; add `AAROGYAMP-REFERENCE.md` + `AAROGYAMP-WORKPLAN.md` + `AGENTS.md` at root
+- [x] Create branch structure (`a/backend`, `b/ai-clinical`, `c/app`)
+- [x] Create `.gitignore`: `.env`, `**/build/`, `.dart_tool/`, `server/storage/`, `*.db`
+- [x] **Contract freeze announcement** — confirm everyone has read Reference §6, §9, §11
+- [x] Commit `server/tests/fixtures/personas.json` — at minimum: one LOW, one MODERATE, one HIGH, one EMERGENCY (vitals-triggered), one EMERGENCY (keyword-triggered), one invalid-vitals persona (per Reference §16)
+- [x] Commit `app/lib/mocks/` — mock assessment responses (one per persona above) + a mock doctor directory (5–10 synthetic verified doctors across specialties)
 
 **Person A:**
 - [x] Scaffold `server/app/` per Reference §4; database setup; `uvicorn app.main:app --reload` serves `GET /health`
 - [x] `models.py` + table initialization for all tables in Reference §6
 
 **Person B:**
-- [ ] Get an LLM provider working end-to-end for a throwaway prompt (pick hosted or local per Reference §15 — this is a real decision to make now, not defer)
-- [ ] Write a script that sends one persona through a draft prompt and demands the §9 JSON schema back, parsed with Pydantic
-- [ ] Commit the script as `server/scripts/test_ai_engine.py`
+- [x] Get an LLM provider working end-to-end for a throwaway prompt (pick hosted or local per Reference §15 — this is a real decision to make now, not defer)
+- [x] Write a script that sends one persona through a draft prompt and demands the §9 JSON schema back, parsed with Pydantic
+- [x] Commit the script as `server/scripts/test_ai_engine.py`
 
 **Person C:**
-- [ ] Flutter project scaffold per Reference §4 folder layout; confirm `flutter run` works on a real device/emulator
-- [ ] Build the mic permission + basic voice capture flow early — same rationale as APK Sentinel's "risk spike first": if `speech_to_text` integration is going to be painful, find out now, not late
+- [x] Flutter project scaffold per Reference §4 folder layout; confirm `flutter run` works on a real device/emulator
+- [x] Build the mic permission + basic voice capture flow early — same rationale as APK Sentinel's "risk spike first": if `speech_to_text` integration is going to be painful, find out now, not late
 
 **Milestone 0 exit criteria:** A's server boots and migrations apply · B parses a real LLM JSON response for at least one persona · C's app runs and can request mic permission successfully.
 
@@ -128,10 +128,10 @@ There's no fixed hour budget — move to the next milestone when the previous on
 - [x] `GET /api/doctor/queue` for the doctor dashboard
 
 **Person B:**
-- [ ] `emergency_rule_engine.py` against `emergency_rules.yaml` — deterministic, unit-tested against every persona in `personas.json`, especially the two emergency ones
-- [ ] `ai_symptom_engine.py`: prompt assembly, JSON-mode or robust-parse fallback, retry-once-on-parse-failure, schema validation via Pydantic
-- [ ] `specialty_mapper.py`: cross-checks LLM's specialty pick against `specialty_map.yaml`, falls back to General Physician
-- [ ] `routers/assessments.py`: wires Stages 1–6 from Reference §8 together, runnable standalone against `personas.json` without needing A's DB/auth (use a lightweight in-memory or SQLite store for this milestone if useful, swap to real DB at integration)
+- [x] `emergency_rule_engine.py` against `emergency_rules.yaml` — deterministic, unit-tested against every persona in `personas.json`, especially the two emergency ones
+- [x] `ai_symptom_engine.py`: prompt assembly, JSON-mode or robust-parse fallback, retry-once-on-parse-failure, schema validation via Pydantic
+- [x] `specialty_mapper.py`: cross-checks LLM's specialty pick against `specialty_map.yaml`, falls back to General Physician
+- [x] `routers/assessments.py`: wires Stages 1–6 from Reference §8 together, runnable standalone against `personas.json` without needing A's DB/auth (use a lightweight in-memory or SQLite store for this milestone if useful, swap to real DB at integration)
 
 **Person B verification (alone):**
 ```bash
@@ -142,11 +142,11 @@ python -m server.scripts.test_ai_engine --persona moderate_fever
 ```
 
 **Person C:**
-- [ ] Build every screen in Reference §12 against `app/lib/mocks/`, both patient and doctor roles
-- [ ] Symptom text/voice input, vitals form with inline validation
-- [ ] Assessment Result card (§10) and a separate, distinct Emergency screen — visually and structurally different, not the same widget with a red color swap
-- [ ] Doctor directory (list + map) + doctor profile with Call/Email/Chat buttons (deep-link `tel:`/`mailto:`, chat opens a mocked thread)
-- [ ] Doctor-role screens: queue + patient detail + chat
+- [x] Build every screen in Reference §12 against `app/lib/mocks/`, both patient and doctor roles
+- [x] Symptom text/voice input, vitals form with inline validation
+- [x] Assessment Result card (§10) and a separate, distinct Emergency screen — visually and structurally different, not the same widget with a red color swap
+- [x] Doctor directory (list + map) + doctor profile with Call/Email/Chat buttons (deep-link `tel:`/`mailto:`, chat opens a mocked thread)
+- [x] Doctor-role screens: queue + patient detail + chat
 
 **Person C verification (alone):**
 ```bash
@@ -174,20 +174,20 @@ flutter run --dart-define=USE_MOCKS=true
 ### MILESTONE 2 — Doctor Loop
 
 **Person A:**
-- [ ] Doctor onboarding/verification flow (even if `routers/admin.py` is just an ops-token-gated endpoint for now, per Reference §3)
-- [ ] Push notifications: new chat message, new patient in doctor's queue (**ntfy.sh** via HTTP POST to `http://ntfy/<doctor_id>` — see Reference §15 Push Notifications; add `ntfy` service to `docker-compose.yml`)
-- [ ] `GET /api/consultations/{id}/messages` pagination for reconnects and dashboard load
+- [x] Doctor onboarding/verification flow (even if `routers/admin.py` is just an ops-token-gated endpoint for now, per Reference §3)
+- [x] Push notifications: new chat message, new patient in doctor's queue (**ntfy.sh** via HTTP POST to `http://ntfy/<doctor_id>` — see Reference §15 Push Notifications; add `ntfy` service to `docker-compose.yml`)
+- [x] `GET /api/consultations/{id}/messages` pagination for reconnects and dashboard load
 
 **Person B:**
-- [ ] Prompt-quality pass using real (synthetic) end-to-end data flowing through A's real pipeline, not just the standalone fixture script
-- [ ] Confirm `recommendation_text` phrasing is consistently actionable and never states a confirmed diagnosis — do a manual audit pass across all personas
-- [ ] Decide and document final LLM provider choice (Reference §15) if not already locked in at M0
+- [x] Prompt-quality pass using real (synthetic) end-to-end data flowing through A's real pipeline, not just the standalone fixture script
+- [x] Confirm `recommendation_text` phrasing is consistently actionable and never states a confirmed diagnosis — do a manual audit pass across all personas
+- [x] Decide and document final LLM provider choice (Reference §15) if not already locked in at M0
 
 **Person C:**
-- [ ] Kill assessment-flow mocks fully; wire doctor directory + consultations + WebSocket chat live
-- [ ] Handle WebSocket reconnect (re-fetch messages since last known id before resuming socket, per Reference §14)
-- [ ] Handle location-permission-denied gracefully (manual city/pincode fallback for doctor search)
-- [ ] Doctor-side: live queue + patient detail pulling real AI assessment data
+- [x] Kill assessment-flow mocks fully; wire doctor directory + consultations + WebSocket chat live
+- [x] Handle WebSocket reconnect (re-fetch messages since last known id before resuming socket, per Reference §14)
+- [x] Handle location-permission-denied gracefully (manual city/pincode fallback for doctor search)
+- [x] Doctor-side: live queue + patient detail pulling real AI assessment data
 
 **Milestone 2 exit criteria:** a synthetic patient can go from symptom submission through to a live chat reply from a synthetic doctor account, entirely on real (non-mock) endpoints.
 
@@ -212,6 +212,17 @@ Same checkpoint discipline as CP1: fix solo, don't crowd, re-run both flows twic
 - [x] **ALL:** walk through Reference §18 (Safety & Compliance Notes) line by line and note open items (legal review, DPDP Act compliance review, telemedicine guideline review) — these are real gating items before real patients use this, not just nice-to-haves
 
 **Milestone 3 exit criteria:** emergency-path tests green in CI · disclaimer audit passed · open compliance items are tracked, not silently skipped.
+
+---
+
+### ✅ CHECKPOINT 3 — Hardening & Compliance Integration Complete
+
+**Merge order: A → B → C onto `main`. Release branch: `checkpoint-3` (alias: `checkpoint3`).**
+1. **Person A Integrated**: WebSocket room concurrency (`asyncio.Lock`), isolated network timeouts (`3.0s`), standardized structured error responses, consultation close broadcast (`WS_1000`).
+2. **Person B Integrated**: Emergency rule engine regression across all synthetic personas with boundary checks (20/20 tests), clinical copy scanner ensuring zero definitive diagnoses, in-memory availability rate telemetry.
+3. **Person C Integrated**: Full UI copy audit across all 38 Dart files (0 diagnostic phrasing violations), mandatory non-diagnostic disclaimer verification on all non-emergency assessment cards, distinct emergency screen isolation, and robust loading/empty/error states across all screens (including `DoctorMapScreen`).
+4. **Unified CI Workflow**: `.github/workflows/ci.yml` runs all 5 test suites on pushes to `main`, `checkpoint-*`, `a/*`, `b/*`, and `c/*`.
+5. **Full Test Suite Status**: 78/78 tests passing (100% green).
 
 ---
 
