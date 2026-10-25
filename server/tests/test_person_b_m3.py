@@ -17,13 +17,26 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+import sys
+
+SERVER_DIR = Path(__file__).resolve().parent.parent
+if str(SERVER_DIR) not in sys.path:
+    sys.path.insert(0, str(SERVER_DIR))
+
 from app.main import app
 from app.schemas import LLMAssessmentOutput, PossibleCondition
 from app.services import ai_symptom_engine, emergency_rule_engine
-from scripts.audit_all_personas import (
-    scan_conditions_for_diagnosis,
-    scan_for_diagnosis_language,
-)
+
+try:
+    from scripts.audit_all_personas import (
+        scan_conditions_for_diagnosis,
+        scan_for_diagnosis_language,
+    )
+except ImportError:
+    from server.scripts.audit_all_personas import (
+        scan_conditions_for_diagnosis,
+        scan_for_diagnosis_language,
+    )
 
 FIXTURES_PATH = Path(__file__).parent / "fixtures" / "personas.json"
 

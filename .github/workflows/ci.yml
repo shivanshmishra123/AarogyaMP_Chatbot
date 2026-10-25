@@ -19,13 +19,14 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      DATABASE_URL: sqlite:///storage/ci_test.db
+      PYTHONPATH: server:.
+      DATABASE_URL: sqlite:////tmp/ci_test.db
       JWT_SECRET: ci_secret_key_testing_only_1234567890abcdef
       LLM_BASE_URL: http://localhost:11434/v1
       LLM_API_KEY: ci-test-key
       LLM_MODEL: llama3.1:8b
       ADMIN_OPS_TOKEN: ci_ops_token_test
-      NTFY_BASE_URL: http://localhost:8080
+
 
     steps:
       - name: Check out repository
@@ -45,7 +46,8 @@ jobs:
 
       - name: Create local storage directory
         run: |
-          mkdir -p server/storage
+          mkdir -p server/storage storage
+
 
       - name: Run Emergency Rule Engine Suite (Person B Clinical Safety Floor)
         run: |
