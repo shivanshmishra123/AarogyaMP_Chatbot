@@ -4,6 +4,55 @@
 
 ---
 
+## 2026-10-26 — Person C: Milestone 3 Hardening — UI Copy Audit, Mandatory Disclaimers & Resilience States
+
+**Who:** Person C (Mobile App Track)
+
+**What was done:**
+- **UI Copy Audit (Reference §18)**:
+  - Scanned all 38 Dart source files in `app/lib/` for forbidden diagnosis language (`you have <condition>`, `diagnosed with`, `the diagnosis is`, `prescribe`, etc.).
+  - Verified 0 instances of definitive diagnostic phrasing. All clinical outputs across patient and doctor views consistently frame assessments as "possible conditions" with likelihood indicators.
+  - Audited `app/lib/mocks/mock_assessments.json`: verified all mock personas include the required `_disclaimer` and contain zero forbidden diagnostic phrases.
+- **Mandatory Disclaimer Verification (Reference §10)**:
+  - Confirmed `DisclaimerBanner` widget renders the exact required copy:
+    `"This is an AI-generated possible-conditions read, not a medical diagnosis. A doctor makes the final call."`
+  - Verified `AssessmentResultScreen` unconditionally renders `DisclaimerBanner` on every non-emergency result.
+  - Verified `PatientHomeScreen` and `DoctorDashboardScreens` prominently display non-diagnostic labels on AI assessment reads.
+- **Emergency Screen Isolation (Reference §10, §12)**:
+  - Verified `EmergencyScreen` is completely decoupled from `AssessmentResultScreen` with zero possible conditions displayed.
+  - Direct 108 emergency dialer button, local hospital search, and guarded exit navigation (`PopScope` confirmation dialog) to prevent dismiss-and-forget.
+  - `AssessmentResultScreen` auto-redirects to `EmergencyScreen` if `result.isEmergency` is true.
+- **Resilience, Empty & Error States Across All Screens**:
+  - `DoctorListScreen`: loading spinner, empty state (`No verified doctors found`), error state with retry button, location-denied fallback banner.
+  - `DoctorMapScreen`: upgraded from placeholder to a functional screen with `AppBar`, back navigation, GPS location explanation, and return-to-list navigation. Wired into `app_router.dart`.
+  - `DoctorQueueScreen`: loading spinner, empty queue state (`No patients in queue`), error state with retry.
+  - `ChatScreen`: WS connecting banner with manual reconnect action, message history loading spinner, empty chat state, typing indicator.
+  - `ConsultationHistoryScreen`: empty history illustration with explanatory text and direct "Find Doctors" navigation button.
+  - `VitalsEntryScreen`: inline vitals range validation, submit button loading spinners, and skip vitals fallback.
+  - `SymptomInputScreens`: 20-character minimum enforcement with live counter, animated voice recording pulse, and mandatory editable transcript review warning.
+- **Automated Verification Suites**:
+  - Authored Flutter widget & unit test suite: `app/test/m3_ui_copy_and_resilience_test.dart` (disclaimer rendering, emergency redirect, degraded path display, mock compliance).
+  - Authored Python verification suite: `server/scripts/audit_mobile_ui.py` and `server/tests/test_person_c_m3.py` (4/4 tests passed in 0.2s).
+  - Configured `.github/workflows/ci.yml` on `c/app` to automatically run Person C's UI copy audit in CI.
+
+**Verification Results:**
+```
+python server/scripts/audit_mobile_ui.py:
+  [PASS] Mandatory Disclaimer: correctly defined and rendered in all assessment views.
+  [PASS] Diagnosis Copy: 0 forbidden diagnostic statements found in any Dart file.
+  [PASS] Mock Assessments: all fixtures adhere strictly to non-diagnostic schema.
+  [PASS] UI Resilience: Loading, error, empty, and reconnect states present across all flows.
+  ALL PERSON C MILESTONE 3 AUDITS PASSED!
+
+pytest server/tests/test_person_c_m3.py: 4/4 passed (100%)
+```
+
+**Gotchas / notes for next session:**
+- `DoctorMapScreen` provides GPS distance and list view guidance; full native OSM tiles are wired via mobile runtime plugins.
+- Defense-in-depth: Unverified doctors (`isVerified == false`) are filtered client-side in both list and profile views even if the API returns them.
+
+---
+
 ## 2026-10-22 — Local AI Migration: Ollama + ntfy Docker Stack (Person C)
 
 **Who:** Person C (vedantdadhich) — infra migration
