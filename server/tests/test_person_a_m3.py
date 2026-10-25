@@ -37,7 +37,9 @@ def client():
     return TestClient(app)
 
 
-ADMIN_HEADERS = {"X-Admin-Ops-Token": "test-admin-token"}
+from app.config import settings
+
+ADMIN_HEADERS = {"X-Admin-Ops-Token": settings.ADMIN_OPS_TOKEN}
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
