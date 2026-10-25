@@ -4,6 +4,40 @@
 
 ---
 
+## 2026-10-26 — Person A: Milestone 3 Hardening — WebSocket Concurrency, Structured Errors & Test Suite
+
+**Who:** Person A (Backend Core)
+
+**What was done:**
+- **WebSocket Concurrency & Isolation (`server/app/routers/consultations.py`)**:
+  - Upgraded `ChatConnectionManager` with `asyncio.Lock` and non-blocking concurrent broadcasts using `asyncio.gather`.
+  - Added per-connection timeout (`3.0s`) and exception isolation so slow or dropped clients do not block or crash other participants in the room.
+  - Implemented `manager.close_room(consultation_id, reason)`: when a doctor closes a consultation (`POST /api/consultations/{id}/close`), an event `{"event": "consultation_closed", "consultation_id": ..., "reason": "doctor_closed"}` is broadcast to all active WebSockets before normal socket termination (`WS_1000`).
+  - Replaced manual dictionary appends with async `manager.connect` and `manager.disconnect` lifecycle methods.
+- **Structured Error Responses Across Failure Modes (`server/app/main.py`)**:
+  - Added centralized exception handlers for `HTTPException`, `RequestValidationError`, and unhandled 500 exceptions.
+  - Standardized error schema: `{"detail": ..., "error": {"code": "...", "message": "...", "status_code": ...}}`.
+  - Maintained top-level `detail` field so all existing tests and client parsers remain 100% backward-compatible.
+  - Updated API version to `0.3.0` in metadata description.
+- **Milestone 3 Automated Test Suite (`server/tests/test_person_a_m3.py`)**:
+  - Added 6 automated tests covering 404/422/403 structured error schemas, concurrent multi-client WebSocket message broadcasts, consultation close notification & room teardown, and external ntfy timeout/error resilience.
+  - Test suite passes 6/6 green.
+
+**Verification Results:**
+```
+pytest server/tests/test_person_a_m3.py:           6/6 passed
+pytest server/tests/test_person_a_m2.py:           19/19 passed
+pytest server/tests/test_person_a_m1.py:           7/7 passed
+pytest server/tests/test_emergency_rule_engine.py: 9/9 passed
+pytest server/tests/test_specialty_mapper.py:      13/13 passed
+Total test suite:                                  54/54 PASSED (100%)
+```
+
+**Gotchas / notes for next session:**
+- `close_consultation` now closes active sockets asynchronously via `await manager.close_room`. Any client listening on the WebSocket can transition its UI directly to a "Consultation Resolved" state upon receiving the event frame.
+
+---
+
 ## 2026-10-26 — Person A: ntfy Notification Wiring, Environment Reconstruction & Database Seeding
 
 **Who:** Person A (Backend Core)

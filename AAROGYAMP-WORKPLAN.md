@@ -206,7 +206,7 @@ Same checkpoint discipline as CP1: fix solo, don't crowd, re-run both flows twic
 
 ### MILESTONE 3 — Hardening & Compliance Pass
 
-- [ ] **A:** timeouts on every external call (LLM, STT if server-side, FCM), concurrency handling on the WebSocket layer, structured error responses for all failure modes
+- [x] **A:** timeouts on every external call (ntfy: 3s, FCM: 5s, LLM: 120s), concurrency handling on the WebSocket layer (asyncio.gather, room close on consultation end), structured error responses for all failure modes
 - [ ] **B:** `test_emergency_rule_engine.py` runs in CI against every persona and must stay green; any future edit to `emergency_rules.yaml` requires this suite to pass plus the clinical sign-off note from §0
 - [ ] **C:** full UI copy audit — confirm the disclaimer from Reference §10 renders on every non-emergency assessment, confirm no screen anywhere implies a confirmed diagnosis, empty/error/loading states everywhere
 - [ ] **ALL:** walk through Reference §18 (Safety & Compliance Notes) line by line and note open items (legal review, DPDP Act compliance review, telemedicine guideline review) — these are real gating items before real patients use this, not just nice-to-haves

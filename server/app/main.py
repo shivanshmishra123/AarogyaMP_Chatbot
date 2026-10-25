@@ -19,8 +19,10 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Literal, Optional
 
-from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.auth import get_current_user
@@ -46,10 +48,10 @@ app = FastAPI(
     title="AarogyaMP API",
     description=(
         "Symptom triage + doctor discovery + doctor-patient consultation platform.\n\n"
-        "**Milestone 2**: Doctor onboarding flow, FCM push notifications, "
-        "cursor-based chat pagination."
+        "**Milestone 3**: WebSocket concurrency hardening, ntfy push notifications, "
+        "structured error responses across all failure modes."
     ),
-    version="0.2.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
@@ -61,6 +63,86 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── Structured Error Handlers (Milestone 3) ────────────────────────────────────
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """
+    Standardized HTTP error response shape across all endpoints.
+    Preserves top-level 'detail' field for backward-compatibility with Pydantic & API tests.
+    """
+    error_codes = {
+        400: "BAD_REQUEST",
+        401: "UNAUTHORIZED",
+        403: "FORBIDDEN",
+        404: "NOT_FOUND",
+        409: "CONFLICT",
+        422: "UNPROCESSABLE_ENTITY",
+        500: "INTERNAL_SERVER_ERROR",
+        503: "SERVICE_UNAVAILABLE",
+    }
+    code = error_codes.get(exc.status_code, "HTTP_ERROR")
+    return JSONResponse(
+        status_code=exc.status_code,
+        headers=exc.headers,
+        content={
+            "detail": exc.detail,
+            "error": {
+                "code": code,
+                "message": str(exc.detail),
+                "status_code": exc.status_code,
+            },
+        },
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """
+    Structured validation error handler with field breakdown for client apps.
+    """
+    errors = exc.errors()
+    field_errors = [
+        {
+            "field": ".".join(str(loc) for loc in err.get("loc", [])),
+            "message": err.get("msg", ""),
+            "type": err.get("type", ""),
+        }
+        for err in errors
+    ]
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "detail": errors,
+            "error": {
+                "code": "VALIDATION_ERROR",
+                "message": "Input validation failed",
+                "status_code": 422,
+                "fields": field_errors,
+            },
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """
+    Global catch-all exception handler guaranteeing a JSON response.
+    """
+    logger.exception(f"Unhandled error on {request.method} {request.url.path}: {exc}")
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "detail": "Internal server error",
+            "error": {
+                "code": "INTERNAL_SERVER_ERROR",
+                "message": "An unexpected server error occurred. Please try again later.",
+                "status_code": 500,
+            },
+        },
+    )
 
 
 # ── Health check ───────────────────────────────────────────────────────────────

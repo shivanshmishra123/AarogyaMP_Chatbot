@@ -17,6 +17,7 @@ Milestone 2 additions:
   - /api/consultations/{id}/close  — doctor can mark a consultation closed
   - Improved error handling in WS loop (send error frame back instead of silent drop)
 """
+import asyncio
 import json
 import logging
 from collections import defaultdict
@@ -56,32 +57,87 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-# ── WebSocket Room Manager ─────────────────────────────────────────────────────
+# ── WebSocket Room Manager (Milestone 3 Hardened) ───────────────────────────────
 
 class ChatConnectionManager:
     def __init__(self):
         # consultation_id -> list of active WebSockets
         self.rooms: Dict[str, List[WebSocket]] = defaultdict(list)
+        self._lock = asyncio.Lock()
 
     async def connect(self, consultation_id: str, websocket: WebSocket):
-        await websocket.accept()
-        self.rooms[consultation_id].append(websocket)
+        async with self._lock:
+            if websocket not in self.rooms[consultation_id]:
+                self.rooms[consultation_id].append(websocket)
 
-    def disconnect(self, consultation_id: str, websocket: WebSocket):
-        if consultation_id in self.rooms:
-            if websocket in self.rooms[consultation_id]:
-                self.rooms[consultation_id].remove(websocket)
-            if not self.rooms[consultation_id]:
-                del self.rooms[consultation_id]
+    async def disconnect(self, consultation_id: str, websocket: WebSocket):
+        async with self._lock:
+            if consultation_id in self.rooms:
+                if websocket in self.rooms[consultation_id]:
+                    self.rooms[consultation_id].remove(websocket)
+                if not self.rooms[consultation_id]:
+                    del self.rooms[consultation_id]
+
+    async def _safe_send(self, websocket: WebSocket, message: dict, timeout: float = 3.0) -> bool:
+        """Send JSON to a websocket with timeout and error containment."""
+        try:
+            await asyncio.wait_for(websocket.send_json(message), timeout=timeout)
+            return True
+        except Exception as e:
+            logger.debug(f"[WS] Send failed or timed out: {e}")
+            return False
 
     async def broadcast(self, consultation_id: str, message: dict):
-        if consultation_id in self.rooms:
-            for connection in list(self.rooms[consultation_id]):
-                try:
-                    await connection.send_json(message)
-                except Exception as e:
-                    logger.warning(f"Failed to send to client: {e}")
-                    self.disconnect(consultation_id, connection)
+        """
+        Broadcast message concurrently to all clients in the room using asyncio.gather.
+        Isolated so one slow/dead client does not delay or crash others.
+        """
+        async with self._lock:
+            connections = list(self.rooms.get(consultation_id, []))
+
+        if not connections:
+            return
+
+        results = await asyncio.gather(
+            *(self._safe_send(ws, message) for ws in connections),
+            return_exceptions=True,
+        )
+
+        dead_connections = [ws for ws, success in zip(connections, results) if success is not True]
+        if dead_connections:
+            async with self._lock:
+                for dead in dead_connections:
+                    if consultation_id in self.rooms and dead in self.rooms[consultation_id]:
+                        self.rooms[consultation_id].remove(dead)
+                if consultation_id in self.rooms and not self.rooms[consultation_id]:
+                    del self.rooms[consultation_id]
+
+    async def close_room(self, consultation_id: str, reason: str = "consultation_closed"):
+        """Notify all active connections that room is closing, then close sockets."""
+        async with self._lock:
+            connections = list(self.rooms.get(consultation_id, []))
+
+        if not connections:
+            return
+
+        close_event = {
+            "event": "consultation_closed",
+            "consultation_id": consultation_id,
+            "reason": reason,
+        }
+        await asyncio.gather(
+            *(self._safe_send(ws, close_event, timeout=2.0) for ws in connections),
+            return_exceptions=True,
+        )
+
+        for ws in connections:
+            try:
+                await ws.close(code=status.WS_1000_NORMAL_CLOSURE)
+            except Exception:
+                pass
+
+        async with self._lock:
+            self.rooms.pop(consultation_id, None)
 
 
 manager = ChatConnectionManager()
@@ -313,6 +369,9 @@ async def close_consultation(
     db.refresh(consultation)
     logger.info(f"[Consultation] {consultation_id} closed by doctor {current_user['user_id']}")
 
+    # Milestone 3: Notify active room participants and cleanly close connections
+    await manager.close_room(consultation_id, reason="doctor_closed")
+
     return CloseConsultationResponse(consultation_id=consultation_id, status="closed")
 
 
@@ -380,8 +439,8 @@ async def websocket_chat(websocket: WebSocket, consultation_id: str, db: Session
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
 
-        # Register connection in room manager
-        manager.rooms[consultation_id].append(websocket)
+        # Register connection in room manager (Milestone 3 hardened)
+        await manager.connect(consultation_id, websocket)
         logger.info(f"[WS] {role} {user_id} connected to consultation {consultation_id}")
 
         # Look up names for push notifications
@@ -445,8 +504,8 @@ async def websocket_chat(websocket: WebSocket, consultation_id: str, db: Session
                 )
 
     except WebSocketDisconnect:
-        manager.disconnect(consultation_id, websocket)
+        await manager.disconnect(consultation_id, websocket)
         logger.info(f"[WS] Client disconnected from {consultation_id}")
     except Exception as e:
         logger.error(f"WebSocket error in {consultation_id}: {e}")
-        manager.disconnect(consultation_id, websocket)
+        await manager.disconnect(consultation_id, websocket)
