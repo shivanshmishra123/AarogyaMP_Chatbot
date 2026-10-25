@@ -56,7 +56,7 @@ _FORBIDDEN_PATTERNS = [
     r"\bthis is\b.*\b(?:infection|disease|disorder)\b",
     r"\byour condition is\b",
     # Prescriptive language (we suggest, not prescribe)
-    r"\btake\b.*\b(?:mg|milligram|tablet|capsule|dose)\b",
+    r"\btake\b.*(?:mg|milligram|tablet|capsule|dose)\b",
     r"\bprescri(?:be|ption)\b",
 ]
 

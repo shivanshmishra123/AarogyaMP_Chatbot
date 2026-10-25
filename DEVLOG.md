@@ -4,6 +4,130 @@
 
 ---
 
+## 2026-10-26 — Person B: Milestone 3 Hardening — Emergency CI Regression, Copy Audit, Degraded-Path Telemetry & Reference §18 Tracking
+
+**Who:** Person B (AI & Clinical Logic Track)
+
+**What was done:**
+- **Emergency Rule Engine CI Regression Suite (`server/tests/test_emergency_rule_engine.py`)**:
+  - Expanded test suite to run parametrized regression against every persona in `server/tests/fixtures/personas.json`.
+  - Added boundary validation tests for all clinician-defined thresholds in `emergency_rules.yaml` (SpO2, heart rate, systolic BP, temperature).
+  - Added case-insensitivity and sentence-variety keyword matching tests (matching upper, lower, and mixed case in complex sentences).
+  - Added explicit test handling for `persona_invalid_vitals` to verify safe execution without unhandled exceptions.
+  - Emergency suite expanded from 9 to 20 tests, passing in < 0.3s.
+- **CI Automation (`.github/workflows/ci.yml`)**:
+  - Created GitHub Actions CI pipeline running on Ubuntu with Python 3.11.
+  - Configured to trigger on all pushes and pull requests across `main`, `shivansh`, `a/*`, `b/*`, and `c/*`.
+  - Enforces running the clinical emergency rule regression, specialty mapper, copy audit, and full backend test suite on every commit.
+- **Degraded-Path Handling & Telemetry (`server/app/services/ai_symptom_engine.py`)**:
+  - Implemented in-memory telemetry and availability rate monitoring: `get_ai_metrics()` and `reset_ai_metrics()`.
+  - Tracks `total_requests`, `successful_analyses`, `unavailable_analyses`, `unavailable_rate`, `last_failure_reason`, and `last_failure_timestamp`.
+  - Added structured warning logs on degraded path: logs failure reason and running unavailable rate percentage.
+  - Wrapped `analyze()` with defensive exception boundary so unexpected runtime errors degrade safely to `(None, "unavailable")`.
+- **Clinical Copy & Diagnosis Language Audit (`server/scripts/audit_all_personas.py`, `server/tests/test_person_b_m3.py`)**:
+  - Hardened regex patterns in `audit_all_personas.py` to match prescriptive dosage strings with attached units (e.g. `500mg`).
+  - Authored comprehensive Milestone 3 test suite `server/tests/test_person_b_m3.py` (9 tests):
+    - Validates strict detection of forbidden diagnosis language (`you have`, `diagnosed with`, `confirmed case`, etc.).
+    - Validates acceptance of proper hedged possible-condition phrasing (`possible`, `may suggest`, `consult a physician`).
+    - Validates that condition names never contain definitive diagnosis phrasing.
+    - Validates emergency short-circuit in `POST /api/assessments` (skips LLM entirely, returns `is_emergency=True`, `ai_status="skipped"`).
+    - Validates degraded-path response in `POST /api/assessments` (returns 200 with `risk_level="MODERATE"`, `ai_status="unavailable"`, non-diagnostic guidance).
+    - Validates AI availability telemetry metric tracking.
+- **Test Suite Cross-Pollution Fix (`server/tests/test_person_a_m1.py`, `m2.py`, `m3.py`)**:
+  - Scoped `get_db` dependency override in `test_person_a_m1.py` to the fixture lifetime and popped on teardown.
+  - Standardized `ADMIN_HEADERS` in `test_person_a_m2.py` and `test_person_a_m3.py` to reference `settings.ADMIN_OPS_TOKEN`.
+  - Enables running the entire repository test suite (`python -m pytest server/tests/ -v`) in a single pass with 100% pass rate.
+- **Safety & Compliance Tracking (Reference §18 Walk-Through)**:
+  - *Decision support only*: Audit script and tests guarantee no diagnostic phrasing; disclaimer attached to non-emergency assessments.
+  - *Emergency thresholds*: Marked as requiring qualified clinical sign-off; untouched in `emergency_rules.yaml`.
+  - *Verified doctor identity*: Enforced at API layer; AI never invents doctors or contact details.
+  - *DPDP Act 2023 / Health data sensitivity*:
+    - Flagged for legal review prior to production pilot.
+    - Health data minimization observed; vitals/symptoms sent to LLM without PII.
+    - Local Ollama path supported (`LLM_BASE_URL=http://localhost:11434/v1`) to prevent health data egress.
+  - *Telemedicine Practice Guidelines*: Telemedicine consults flagged for formal institutional review before live practitioner onboarding.
+
+**Verification Results:**
+```
+pytest server/tests/test_emergency_rule_engine.py: 20/20 passed
+pytest server/tests/test_specialty_mapper.py:      13/13 passed
+pytest server/tests/test_person_b_m3.py:           9/9 passed
+pytest server/tests/test_person_a_m1.py:           7/7 passed
+pytest server/tests/test_person_a_m2.py:           19/19 passed
+pytest server/tests/test_person_a_m3.py:           6/6 passed
+Total test suite (server/tests/):                  74/74 PASSED (100%)
+```
+
+**Gotchas / notes for next session:**
+- `emergency_rules.yaml` retains clinical review placeholders. Do NOT edit thresholds or keyword lists without recorded clinician approval.
+- In local development without Ollama or Groq active, `ai_symptom_engine` returns `(None, "unavailable")`, and the router safely defaults to MODERATE risk with physician consultation recommendation.
+
+---
+
+## 2026-10-26 — Person A: Milestone 3 Hardening — WebSocket Concurrency, Structured Errors & Test Suite
+
+**Who:** Person A (Backend Core)
+
+**What was done:**
+- **WebSocket Concurrency & Isolation (`server/app/routers/consultations.py`)**:
+  - Upgraded `ChatConnectionManager` with `asyncio.Lock` and non-blocking concurrent broadcasts using `asyncio.gather`.
+  - Added per-connection timeout (`3.0s`) and exception isolation so slow or dropped clients do not block or crash other participants in the room.
+  - Implemented `manager.close_room(consultation_id, reason)`: when a doctor closes a consultation (`POST /api/consultations/{id}/close`), an event `{"event": "consultation_closed", "consultation_id": ..., "reason": "doctor_closed"}` is broadcast to all active WebSockets before normal socket termination (`WS_1000`).
+  - Replaced manual dictionary appends with async `manager.connect` and `manager.disconnect` lifecycle methods.
+- **Structured Error Responses Across Failure Modes (`server/app/main.py`)**:
+  - Added centralized exception handlers for `HTTPException`, `RequestValidationError`, and unhandled 500 exceptions.
+  - Standardized error schema: `{"detail": ..., "error": {"code": "...", "message": "...", "status_code": ...}}`.
+  - Maintained top-level `detail` field so all existing tests and client parsers remain 100% backward-compatible.
+  - Updated API version to `0.3.0` in metadata description.
+- **Milestone 3 Automated Test Suite (`server/tests/test_person_a_m3.py`)**:
+  - Added 6 automated tests covering 404/422/403 structured error schemas, concurrent multi-client WebSocket message broadcasts, consultation close notification & room teardown, and external ntfy timeout/error resilience.
+  - Test suite passes 6/6 green.
+
+**Verification Results:**
+```
+pytest server/tests/test_person_a_m3.py:           6/6 passed
+pytest server/tests/test_person_a_m2.py:           19/19 passed
+pytest server/tests/test_person_a_m1.py:           7/7 passed
+pytest server/tests/test_emergency_rule_engine.py: 9/9 passed
+pytest server/tests/test_specialty_mapper.py:      13/13 passed
+Total test suite:                                  54/54 PASSED (100%)
+```
+
+**Gotchas / notes for next session:**
+- `close_consultation` now closes active sockets asynchronously via `await manager.close_room`. Any client listening on the WebSocket can transition its UI directly to a "Consultation Resolved" state upon receiving the event frame.
+
+---
+
+## 2026-10-26 — Person A: ntfy Notification Wiring, Environment Reconstruction & Database Seeding
+
+**Who:** Person A (Backend Core)
+
+**What was done:**
+- Reconstructed `server/.env` and `.env` with self-hosted stack defaults, 64-char JWT secret, and `sqlite:///storage/demo.db` for local standalone dev.
+- Added `NTFY_BASE_URL: str = "http://localhost:8080"` and `extra = "ignore"` to `server/app/config.py`.
+- Fully wired ntfy as the primary push transport in `server/app/services/notifications.py`:
+  - Implemented async fire-and-forget `_send_ntfy` with 3-second timeout.
+  - Doctor notifications dispatch to `aarogyamp-doctor-{doctor_id}`.
+  - Patient notifications dispatch to `aarogyamp-patient-{patient_id}`.
+  - Retained token registration endpoints (`/api/devices/register`) and dual-dispatch fallback to FCM if `FCM_SERVER_KEY` is present.
+- Seeded `server/storage/demo.db` with 8 synthetic verified doctors using `scripts/seed_doctors.py`.
+- Added unit test `test_ntfy_notifications_dispatch_safely` to `server/tests/test_person_a_m2.py`.
+
+**Verification Results:**
+```
+pytest server/tests/test_person_a_m1.py:           7/7 passed
+pytest server/tests/test_person_a_m2.py:           19/19 passed
+pytest server/tests/test_emergency_rule_engine.py: 9/9 passed
+pytest server/tests/test_specialty_mapper.py:      13/13 passed
+Total test suite:                                  48/48 PASSED
+```
+
+**Gotchas / notes for next session:**
+- Host machine has an active container (`algoclash-postgres`) running on port 5432. Local native development uses `DATABASE_URL=sqlite:///storage/demo.db` to prevent port collisions. If deploying with `docker compose up -d`, Docker Compose automatically routes `api` to its own internal PostgreSQL service (`postgres:5432`).
+- Flutter app (Person C) can now subscribe directly to `http://<server-ip>:8080/aarogyamp-patient-{patient_id}/sse` or `/ws` for incoming notifications without needing FCM tokens.
+
+---
+
 ## 2026-10-22 — Local AI Migration: Ollama + ntfy Docker Stack (Person C)
 
 **Who:** Person C (vedantdadhich) — infra migration
