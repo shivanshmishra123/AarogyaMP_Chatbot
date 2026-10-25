@@ -23,9 +23,13 @@ SERVER_DIR = Path(__file__).resolve().parent.parent
 if str(SERVER_DIR) not in sys.path:
     sys.path.insert(0, str(SERVER_DIR))
 
-from app.main import app
+from fastapi import FastAPI
+from app.routers import assessments
 from app.schemas import LLMAssessmentOutput, PossibleCondition
 from app.services import ai_symptom_engine, emergency_rule_engine
+
+assessment_app = FastAPI(title="Assessments Test App")
+assessment_app.include_router(assessments.router, prefix="/api/assessments")
 
 try:
     from scripts.audit_all_personas import (
@@ -50,7 +54,7 @@ def personas():
 
 @pytest.fixture
 def client():
-    return TestClient(app)
+    return TestClient(assessment_app)
 
 
 # ── 1. Emergency CI Regression for Every Persona ─────────────
