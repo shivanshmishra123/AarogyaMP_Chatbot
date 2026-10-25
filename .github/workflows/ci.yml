@@ -1,0 +1,67 @@
+name: AarogyaMP Clinical & Backend CI
+
+on:
+  push:
+    branches:
+      - main
+      - shivansh
+      - "a/*"
+      - "b/*"
+      - "c/*"
+  pull_request:
+    branches:
+      - main
+      - shivansh
+
+jobs:
+  test-clinical-and-backend:
+    name: Clinical Logic & Backend Verification
+    runs-on: ubuntu-latest
+
+    env:
+      PYTHONPATH: server:.
+      DATABASE_URL: sqlite:////tmp/ci_test.db
+      JWT_SECRET: ci_secret_key_testing_only_1234567890abcdef
+      LLM_BASE_URL: http://localhost:11434/v1
+      LLM_API_KEY: ci-test-key
+      LLM_MODEL: llama3.1:8b
+      ADMIN_OPS_TOKEN: ci_ops_token_test
+
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: server/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r server/requirements.txt pyjwt
+
+
+      - name: Create local storage directory
+        run: |
+          mkdir -p server/storage storage
+
+
+      - name: Run Emergency Rule Engine Suite (Person B Clinical Safety Floor)
+        run: |
+          python -m pytest server/tests/test_emergency_rule_engine.py -v
+
+      - name: Run Specialty Mapper Suite
+        run: |
+          python -m pytest server/tests/test_specialty_mapper.py -v
+
+      - name: Run Person B Milestone 3 Hardening & Audit Suite
+        run: |
+          python -m pytest server/tests/test_person_b_m3.py -v
+
+      - name: Run Full Backend Test Suite
+        run: |
+          python -m pytest server/tests/ -v

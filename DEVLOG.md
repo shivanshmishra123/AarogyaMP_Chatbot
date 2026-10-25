@@ -4,6 +4,68 @@
 
 ---
 
+## 2026-10-26 — Person B: Milestone 3 Hardening — Emergency CI Regression, Copy Audit, Degraded-Path Telemetry & Reference §18 Tracking
+
+**Who:** Person B (AI & Clinical Logic Track)
+
+**What was done:**
+- **Emergency Rule Engine CI Regression Suite (`server/tests/test_emergency_rule_engine.py`)**:
+  - Expanded test suite to run parametrized regression against every persona in `server/tests/fixtures/personas.json`.
+  - Added boundary validation tests for all clinician-defined thresholds in `emergency_rules.yaml` (SpO2, heart rate, systolic BP, temperature).
+  - Added case-insensitivity and sentence-variety keyword matching tests (matching upper, lower, and mixed case in complex sentences).
+  - Added explicit test handling for `persona_invalid_vitals` to verify safe execution without unhandled exceptions.
+  - Emergency suite expanded from 9 to 20 tests, passing in < 0.3s.
+- **CI Automation (`.github/workflows/ci.yml`)**:
+  - Created GitHub Actions CI pipeline running on Ubuntu with Python 3.11.
+  - Configured to trigger on all pushes and pull requests across `main`, `shivansh`, `a/*`, `b/*`, and `c/*`.
+  - Enforces running the clinical emergency rule regression, specialty mapper, copy audit, and full backend test suite on every commit.
+- **Degraded-Path Handling & Telemetry (`server/app/services/ai_symptom_engine.py`)**:
+  - Implemented in-memory telemetry and availability rate monitoring: `get_ai_metrics()` and `reset_ai_metrics()`.
+  - Tracks `total_requests`, `successful_analyses`, `unavailable_analyses`, `unavailable_rate`, `last_failure_reason`, and `last_failure_timestamp`.
+  - Added structured warning logs on degraded path: logs failure reason and running unavailable rate percentage.
+  - Wrapped `analyze()` with defensive exception boundary so unexpected runtime errors degrade safely to `(None, "unavailable")`.
+- **Clinical Copy & Diagnosis Language Audit (`server/scripts/audit_all_personas.py`, `server/tests/test_person_b_m3.py`)**:
+  - Hardened regex patterns in `audit_all_personas.py` to match prescriptive dosage strings with attached units (e.g. `500mg`).
+  - Authored comprehensive Milestone 3 test suite `server/tests/test_person_b_m3.py` (9 tests):
+    - Validates strict detection of forbidden diagnosis language (`you have`, `diagnosed with`, `confirmed case`, etc.).
+    - Validates acceptance of proper hedged possible-condition phrasing (`possible`, `may suggest`, `consult a physician`).
+    - Validates that condition names never contain definitive diagnosis phrasing.
+    - Validates emergency short-circuit in `POST /api/assessments` (skips LLM entirely, returns `is_emergency=True`, `ai_status="skipped"`).
+    - Validates degraded-path response in `POST /api/assessments` (returns 200 with `risk_level="MODERATE"`, `ai_status="unavailable"`, non-diagnostic guidance).
+    - Validates AI availability telemetry metric tracking.
+- **Test Suite Cross-Pollution Fix (`server/tests/test_person_a_m1.py`, `m2.py`, `m3.py`)**:
+  - Scoped `get_db` dependency override in `test_person_a_m1.py` to the fixture lifetime and popped on teardown.
+  - Standardized `ADMIN_HEADERS` in `test_person_a_m2.py` and `test_person_a_m3.py` to reference `settings.ADMIN_OPS_TOKEN`.
+  - Enables running the entire repository test suite (`python -m pytest server/tests/ -v`) in a single pass with 100% pass rate.
+- **Safety & Compliance Tracking (Reference §18 Walk-Through)**:
+  - *Decision support only*: Audit script and tests guarantee no diagnostic phrasing; disclaimer attached to non-emergency assessments.
+  - *Emergency thresholds*: Marked as requiring qualified clinical sign-off; untouched in `emergency_rules.yaml`.
+  - *Verified doctor identity*: Enforced at API layer; AI never invents doctors or contact details.
+  - *DPDP Act 2023 / Health data sensitivity*:
+    - Flagged for legal review prior to production pilot.
+    - Health data minimization observed; vitals/symptoms sent to LLM without PII.
+    - Local Ollama path supported (`LLM_BASE_URL=http://localhost:11434/v1`) to prevent health data egress.
+  - *Telemedicine Practice Guidelines*: Telemedicine consults flagged for formal institutional review before live practitioner onboarding.
+
+**Verification Results:**
+```
+pytest server/tests/test_emergency_rule_engine.py: 20/20 passed
+pytest server/tests/test_specialty_mapper.py:      13/13 passed
+pytest server/tests/test_person_b_m3.py:           9/9 passed
+pytest server/tests/test_person_a_m1.py:           7/7 passed
+pytest server/tests/test_person_a_m2.py:           19/19 passed
+pytest server/tests/test_person_a_m3.py:           6/6 passed
+Total test suite (server/tests/):                  74/74 PASSED (100%)
+```
+
+**Gotchas / notes for next session:**
+- `emergency_rules.yaml` retains clinical review placeholders. Do NOT edit thresholds or keyword lists without recorded clinician approval.
+- In local development without Ollama or Groq active, `ai_symptom_engine` returns `(None, "unavailable")`, and the router safely defaults to MODERATE risk with physician consultation recommendation.
+- CI on branch `b/ai-clinical`: Isolated `assessments.router` in `test_person_b_m3.py` onto a standalone FastAPI test harness and added `pyjwt` to CI dependencies to decouple testing from full application lifespan. GitHub Actions CI run `40235815462` passed 100% green.
+
+---
+
+
 ## 2026-10-26 — Person A: Milestone 3 Hardening — WebSocket Concurrency, Structured Errors & Test Suite
 
 **Who:** Person A (Backend Core)

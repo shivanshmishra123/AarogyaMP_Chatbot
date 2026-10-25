@@ -198,6 +198,62 @@ async def _call_llm(user_prompt: str) -> Optional[str]:
         return None
 
 
+# ── Telemetry & Degraded-Path Metrics (Milestone 3 / 4) ───────
+
+_ai_metrics: dict = {
+    "total_requests": 0,
+    "successful_analyses": 0,
+    "unavailable_analyses": 0,
+    "last_failure_reason": None,
+    "last_failure_timestamp": None,
+}
+
+
+def get_ai_metrics() -> dict:
+    """
+    Return in-memory telemetry on AI symptom engine requests and availability rate.
+    Enables monitoring of the ai_status="unavailable" rate in production.
+    """
+    total = _ai_metrics["total_requests"]
+    unavailable = _ai_metrics["unavailable_analyses"]
+    rate = (unavailable / total) if total > 0 else 0.0
+    return {
+        **_ai_metrics,
+        "unavailable_rate": round(rate, 4),
+        "unavailable_percentage": f"{round(rate * 100, 2)}%",
+    }
+
+
+def reset_ai_metrics() -> None:
+    """Reset telemetry counters (useful for unit tests and periodic flush)."""
+    _ai_metrics["total_requests"] = 0
+    _ai_metrics["successful_analyses"] = 0
+    _ai_metrics["unavailable_analyses"] = 0
+    _ai_metrics["last_failure_reason"] = None
+    _ai_metrics["last_failure_timestamp"] = None
+
+
+def _record_metric_failure(reason: str) -> None:
+    import datetime
+    _ai_metrics["total_requests"] += 1
+    _ai_metrics["unavailable_analyses"] += 1
+    _ai_metrics["last_failure_reason"] = reason
+    _ai_metrics["last_failure_timestamp"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    metrics = get_ai_metrics()
+    logger.warning(
+        "ai_status='unavailable' [reason: %s]. Telemetry: total=%d, unavailable=%d (%s)",
+        reason,
+        metrics["total_requests"],
+        metrics["unavailable_analyses"],
+        metrics["unavailable_percentage"],
+    )
+
+
+def _record_metric_success() -> None:
+    _ai_metrics["total_requests"] += 1
+    _ai_metrics["successful_analyses"] += 1
+
+
 # ── Public API ────────────────────────────────────────────────
 
 async def analyze(
@@ -216,40 +272,52 @@ async def analyze(
     Returns: (LLMAssessmentOutput or None, ai_status)
       ai_status: "ok" | "unavailable"
     """
-    # Guard: no API key configured
-    if not settings.LLM_API_KEY:
-        logger.warning("LLM_API_KEY not configured — returning unavailable")
-        return None, "unavailable"
-
-    user_prompt = _build_user_prompt(
-        raw_text, duration_text,
-        temperature_f, heart_rate_bpm, systolic_bp, diastolic_bp,
-        spo2_pct, age,
-    )
-
-    # ── Attempt 1 ─────────────────────────────────────────────
-    raw_response = await _call_llm(user_prompt)
-    if raw_response is None:
-        return None, "unavailable"
-
-    result = _parse_and_validate(raw_response)
-
-    # ── Retry once on parse failure (Reference §9) ────────────
-    if result is None:
-        logger.warning("First LLM response failed parsing — retrying with strict instruction")
-        retry_prompt = (
-            user_prompt
-            + "\n\nYour previous response was not valid JSON. "
-            "Return ONLY valid JSON matching the schema above, no other text."
-        )
-        raw_response = await _call_llm(retry_prompt)
-        if raw_response is None:
+    try:
+        # Guard: no API key configured
+        if not settings.LLM_API_KEY:
+            logger.warning("LLM_API_KEY not configured — returning unavailable")
+            _record_metric_failure("missing_api_key")
             return None, "unavailable"
+
+        user_prompt = _build_user_prompt(
+            raw_text, duration_text,
+            temperature_f, heart_rate_bpm, systolic_bp, diastolic_bp,
+            spo2_pct, age,
+        )
+
+        # ── Attempt 1 ─────────────────────────────────────────────
+        raw_response = await _call_llm(user_prompt)
+        if raw_response is None:
+            _record_metric_failure("llm_call_failed_attempt_1")
+            return None, "unavailable"
+
         result = _parse_and_validate(raw_response)
 
-    # ── Final check ───────────────────────────────────────────
-    if result is None:
-        logger.error("LLM response failed validation after retry")
+        # ── Retry once on parse failure (Reference §9) ────────────
+        if result is None:
+            logger.warning("First LLM response failed parsing — retrying with strict instruction")
+            retry_prompt = (
+                user_prompt
+                + "\n\nYour previous response was not valid JSON. "
+                "Return ONLY valid JSON matching the schema above, no other text."
+            )
+            raw_response = await _call_llm(retry_prompt)
+            if raw_response is None:
+                _record_metric_failure("llm_call_failed_retry")
+                return None, "unavailable"
+            result = _parse_and_validate(raw_response)
+
+        # ── Final check ───────────────────────────────────────────
+        if result is None:
+            logger.error("LLM response failed validation after retry")
+            _record_metric_failure("schema_validation_failed")
+            return None, "unavailable"
+
+        _record_metric_success()
+        return result, "ok"
+
+    except Exception as exc:
+        logger.error("Unexpected exception in ai_symptom_engine.analyze: %s", exc, exc_info=True)
+        _record_metric_failure(f"unhandled_exception: {type(exc).__name__}")
         return None, "unavailable"
 
-    return result, "ok"

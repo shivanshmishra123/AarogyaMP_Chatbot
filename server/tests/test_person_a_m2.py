@@ -23,6 +23,7 @@ os.environ.setdefault("ADMIN_OPS_TOKEN", "test-admin-token")
 os.environ.setdefault("JWT_SECRET", "test-jwt-secret")
 
 from fastapi.testclient import TestClient
+from app.config import settings
 from app.main import app
 from app.database import Base, engine
 
@@ -42,8 +43,9 @@ def client():
     return TestClient(app)
 
 
-ADMIN_HEADERS = {"X-Admin-Ops-Token": "test-admin-token"}
-BAD_ADMIN_HEADERS = {"X-Admin-Ops-Token": "wrong-token"}
+ADMIN_HEADERS = {"X-Admin-Ops-Token": settings.ADMIN_OPS_TOKEN}
+BAD_ADMIN_HEADERS = {"X-Admin-Ops-Token": "wrong-token-invalid"}
+
 
 
 def _register_patient(client, suffix="01") -> dict:
