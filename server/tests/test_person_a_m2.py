@@ -427,3 +427,23 @@ def test_register_device_token_unauthenticated(client):
         json={"fcm_token": "some-token"},
     )
     assert resp.status_code in (401, 403), f"Expected 401/403, got {resp.status_code}: {resp.text}"
+
+
+# ── 6. Push Notifications (ntfy & fallback resilience) ─────────────────────────
+
+def test_ntfy_notifications_dispatch_safely():
+    """Verify that notification dispatch to ntfy topics completes without exceptions."""
+    import asyncio
+    from app.services.notifications import (
+        send_new_message_notification,
+        send_queue_notification,
+        send_doctor_responded_notification,
+    )
+    async def _run():
+        # Fire all three notification helpers — they must never raise
+        await send_new_message_notification("doc-123", "Ramesh", "Hello Doctor")
+        await send_queue_notification("doc-123", "Ramesh")
+        await send_doctor_responded_notification("pat-456", "Dr. Sharma", "Take rest and stay hydrated")
+
+    asyncio.run(_run())
+

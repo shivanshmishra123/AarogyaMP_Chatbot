@@ -4,6 +4,36 @@
 
 ---
 
+## 2026-10-26 — Person A: ntfy Notification Wiring, Environment Reconstruction & Database Seeding
+
+**Who:** Person A (Backend Core)
+
+**What was done:**
+- Reconstructed `server/.env` and `.env` with self-hosted stack defaults, 64-char JWT secret, and `sqlite:///storage/demo.db` for local standalone dev.
+- Added `NTFY_BASE_URL: str = "http://localhost:8080"` and `extra = "ignore"` to `server/app/config.py`.
+- Fully wired ntfy as the primary push transport in `server/app/services/notifications.py`:
+  - Implemented async fire-and-forget `_send_ntfy` with 3-second timeout.
+  - Doctor notifications dispatch to `aarogyamp-doctor-{doctor_id}`.
+  - Patient notifications dispatch to `aarogyamp-patient-{patient_id}`.
+  - Retained token registration endpoints (`/api/devices/register`) and dual-dispatch fallback to FCM if `FCM_SERVER_KEY` is present.
+- Seeded `server/storage/demo.db` with 8 synthetic verified doctors using `scripts/seed_doctors.py`.
+- Added unit test `test_ntfy_notifications_dispatch_safely` to `server/tests/test_person_a_m2.py`.
+
+**Verification Results:**
+```
+pytest server/tests/test_person_a_m1.py:           7/7 passed
+pytest server/tests/test_person_a_m2.py:           19/19 passed
+pytest server/tests/test_emergency_rule_engine.py: 9/9 passed
+pytest server/tests/test_specialty_mapper.py:      13/13 passed
+Total test suite:                                  48/48 PASSED
+```
+
+**Gotchas / notes for next session:**
+- Host machine has an active container (`algoclash-postgres`) running on port 5432. Local native development uses `DATABASE_URL=sqlite:///storage/demo.db` to prevent port collisions. If deploying with `docker compose up -d`, Docker Compose automatically routes `api` to its own internal PostgreSQL service (`postgres:5432`).
+- Flutter app (Person C) can now subscribe directly to `http://<server-ip>:8080/aarogyamp-patient-{patient_id}/sse` or `/ws` for incoming notifications without needing FCM tokens.
+
+---
+
 ## 2026-10-22 — Local AI Migration: Ollama + ntfy Docker Stack (Person C)
 
 **Who:** Person C (vedantdadhich) — infra migration

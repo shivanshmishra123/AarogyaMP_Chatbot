@@ -35,7 +35,8 @@ class Settings(BaseSettings):
     STT_PROVIDER: str = "device"  # device | whisper_api | local_whisper
     STT_API_KEY: str = ""
 
-    # Push
+    # Push — ntfy (self-hosted) + legacy FCM
+    NTFY_BASE_URL: str = "http://localhost:8080"
     FCM_SERVER_KEY: str = ""
 
     # Ops
@@ -44,6 +45,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = _ENV_PATH
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 settings = Settings()

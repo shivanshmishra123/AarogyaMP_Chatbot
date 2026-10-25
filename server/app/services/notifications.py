@@ -1,17 +1,17 @@
 """
-AarogyaMP — Push Notifications via FCM (Firebase Cloud Messaging)
+AarogyaMP — Push Notifications via ntfy.sh (Self-Hosted) & FCM Migration Hook
 Person A owns this file.
 
-Milestone 2: Real FCM HTTP v1 API integration.
-Sends notifications for:
-  - New chat message → doctor
-  - New patient in doctor's queue → doctor
-  - Doctor accepted consultation → patient (future)
+Milestone 2/4 Architecture:
+- Primary transport: Self-hosted ntfy server (Docker sidecar).
+  Topics:
+    - Doctor notifications -> topic: "aarogyamp-doctor-{doctor_id}"
+    - Patient notifications -> topic: "aarogyamp-patient-{patient_id}"
+  No accounts or external credentials needed. Clients subscribe over HTTP SSE or WebSocket.
 
-Configuration:
-  FCM_SERVER_KEY in server/.env (Legacy HTTP API key or Service Account JSON path)
+- Legacy/Fallback transport: Firebase Cloud Messaging (FCM).
+  Kept as a migration hook when FCM_SERVER_KEY is configured.
 
-If FCM_SERVER_KEY is not set, all calls are no-ops (logs at DEBUG level).
 No notification failure should ever propagate up and break the main request path.
 """
 import json
@@ -24,6 +24,43 @@ logger = logging.getLogger(__name__)
 # FCM Legacy HTTP API endpoint (works with server key)
 _FCM_SEND_URL = "https://fcm.googleapis.com/fcm/send"
 
+
+# ── ntfy (Self-Hosted) Dispatch ────────────────────────────────────────────────
+
+async def _send_ntfy(
+    topic: str,
+    title: str,
+    body: str,
+    priority: str = "default",
+    tags: str = "hospital",
+) -> None:
+    """
+    Fire-and-forget ntfy notification. Never raises.
+    Timeout: 3 seconds (push failures must not block chat or consultations).
+    """
+    if not settings.NTFY_BASE_URL:
+        return
+
+    base_url = settings.NTFY_BASE_URL.rstrip("/")
+    url = f"{base_url}/{topic}"
+    headers = {
+        "Title": title,
+        "Priority": priority,
+        "Tags": tags,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            resp = await client.post(url, headers=headers, content=body.encode("utf-8"))
+            if resp.status_code >= 400:
+                logger.warning(f"[ntfy] Non-2xx response from {url}: {resp.status_code}")
+            else:
+                logger.debug(f"[ntfy] Sent OK: '{title}' → {topic}")
+    except Exception as exc:
+        # Push notification failure is never fatal — log and continue
+        logger.warning(f"[ntfy] Exception sending notification to {topic}: {exc!r}")
+
+
+# ── FCM Legacy Dispatch ────────────────────────────────────────────────────────
 
 def _build_fcm_headers() -> dict:
     return {
@@ -86,27 +123,23 @@ async def _send_fcm(title: str, body: str, to_token: str, data: dict | None = No
         logger.warning(f"[FCM] Exception sending notification: {exc!r}")
 
 
-# ── Doctor FCM Token Store ─────────────────────────────────────────────────────
-# In a real deployment, doctor FCM tokens would be stored in the DB (e.g., Doctor.fcm_token
-# or a separate DeviceToken table per-user-session). At M2 we use a lightweight in-process
-# dict as a stub that gets populated via the /api/devices/register endpoint below.
-# The structure is intentionally identical to what a DB-backed version would use,
-# so swapping is a one-liner later.
+# ── Doctor & Patient Token Store (Migration Hook) ──────────────────────────────
+# Stored in-process for device token registration endpoint (/api/devices/register).
 
 _doctor_fcm_tokens: dict[str, str] = {}   # doctor_id -> fcm_device_token
 _patient_fcm_tokens: dict[str, str] = {}  # patient_id -> fcm_device_token
 
 
 def register_doctor_token(doctor_id: str, token: str) -> None:
-    """Called by /api/devices/register when a doctor logs in and sends their FCM token."""
+    """Called by /api/devices/register when a doctor logs in."""
     _doctor_fcm_tokens[doctor_id] = token
-    logger.info(f"[FCM] Registered doctor token for {doctor_id}")
+    logger.info(f"[Devices] Registered doctor token for {doctor_id}")
 
 
 def register_patient_token(patient_id: str, token: str) -> None:
-    """Called by /api/devices/register when a patient logs in and sends their FCM token."""
+    """Called by /api/devices/register when a patient logs in."""
     _patient_fcm_tokens[patient_id] = token
-    logger.info(f"[FCM] Registered patient token for {patient_id}")
+    logger.info(f"[Devices] Registered patient token for {patient_id}")
 
 
 # ── Public notification helpers ────────────────────────────────────────────────
@@ -116,36 +149,55 @@ async def send_new_message_notification(doctor_id: str, patient_name: str, previ
     Notify a doctor that a patient sent a new chat message.
     Called from the WebSocket handler after each persisted message.
     """
-    token = _doctor_fcm_tokens.get(doctor_id)
-    if not token:
-        logger.debug(f"[FCM] No device token for doctor {doctor_id} — skipping new-message push")
-        return
+    body_text = preview[:100]
+    title_text = f"New message from {patient_name}"
 
-    await _send_fcm(
-        title=f"New message from {patient_name}",
-        body=preview[:100],
-        to_token=token,
-        data={"event": "new_message", "doctor_id": doctor_id},
+    # 1. Primary: ntfy self-hosted push
+    await _send_ntfy(
+        topic=f"aarogyamp-doctor-{doctor_id}",
+        title=title_text,
+        body=body_text,
+        priority="default",
+        tags="speech_balloon",
     )
+
+    # 2. Migration hook: FCM if configured
+    token = _doctor_fcm_tokens.get(doctor_id)
+    if token and settings.FCM_SERVER_KEY:
+        await _send_fcm(
+            title=title_text,
+            body=body_text,
+            to_token=token,
+            data={"event": "new_message", "doctor_id": doctor_id},
+        )
 
 
 async def send_queue_notification(doctor_id: str, patient_name: str) -> None:
     """
     Notify a doctor that a new patient has appeared in their consultation queue.
-    Called from assessments.py / consultations.py when a consultation is created
-    and linked to a doctor.
+    Called from consultations.py when a consultation is created.
     """
-    token = _doctor_fcm_tokens.get(doctor_id)
-    if not token:
-        logger.debug(f"[FCM] No device token for doctor {doctor_id} — skipping queue push")
-        return
+    title_text = "New Patient in Queue"
+    body_text = f"{patient_name} is waiting for a consultation"
 
-    await _send_fcm(
-        title="New Patient in Queue",
-        body=f"{patient_name} is waiting for a consultation",
-        to_token=token,
-        data={"event": "new_queue_patient", "doctor_id": doctor_id},
+    # 1. Primary: ntfy self-hosted push
+    await _send_ntfy(
+        topic=f"aarogyamp-doctor-{doctor_id}",
+        title=title_text,
+        body=body_text,
+        priority="high",
+        tags="hospital,inbox_tray",
     )
+
+    # 2. Migration hook: FCM if configured
+    token = _doctor_fcm_tokens.get(doctor_id)
+    if token and settings.FCM_SERVER_KEY:
+        await _send_fcm(
+            title=title_text,
+            body=body_text,
+            to_token=token,
+            data={"event": "new_queue_patient", "doctor_id": doctor_id},
+        )
 
 
 async def send_doctor_responded_notification(patient_id: str, doctor_name: str, preview: str) -> None:
@@ -153,14 +205,24 @@ async def send_doctor_responded_notification(patient_id: str, doctor_name: str, 
     Notify a patient that the doctor replied in their chat thread.
     Called from the WebSocket handler when sender_role == 'doctor'.
     """
-    token = _patient_fcm_tokens.get(patient_id)
-    if not token:
-        logger.debug(f"[FCM] No device token for patient {patient_id} — skipping reply push")
-        return
+    body_text = preview[:100]
+    title_text = f"Dr. {doctor_name} replied"
 
-    await _send_fcm(
-        title=f"Dr. {doctor_name} replied",
-        body=preview[:100],
-        to_token=token,
-        data={"event": "doctor_reply", "patient_id": patient_id},
+    # 1. Primary: ntfy self-hosted push
+    await _send_ntfy(
+        topic=f"aarogyamp-patient-{patient_id}",
+        title=title_text,
+        body=body_text,
+        priority="default",
+        tags="stethoscope",
     )
+
+    # 2. Migration hook: FCM if configured
+    token = _patient_fcm_tokens.get(patient_id)
+    if token and settings.FCM_SERVER_KEY:
+        await _send_fcm(
+            title=title_text,
+            body=body_text,
+            to_token=token,
+            data={"event": "doctor_reply", "patient_id": patient_id},
+        )
