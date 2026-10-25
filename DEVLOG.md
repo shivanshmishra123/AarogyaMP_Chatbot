@@ -61,6 +61,7 @@ Total test suite (server/tests/):                  74/74 PASSED (100%)
 **Gotchas / notes for next session:**
 - `emergency_rules.yaml` retains clinical review placeholders. Do NOT edit thresholds or keyword lists without recorded clinician approval.
 - In local development without Ollama or Groq active, `ai_symptom_engine` returns `(None, "unavailable")`, and the router safely defaults to MODERATE risk with physician consultation recommendation.
+- CI on branch `b/ai-clinical`: Isolated `assessments.router` in `test_person_b_m3.py` onto a standalone FastAPI test harness and added `pyjwt` to CI dependencies to decouple testing from full application lifespan. GitHub Actions CI run `40235815462` passed 100% green.
 
 ---
 
