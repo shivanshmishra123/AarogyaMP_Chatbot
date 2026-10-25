@@ -4,6 +4,87 @@
 
 ---
 
+## 2026-10-26 — Checkpoint 3: Milestone 3 Hardening & Compliance Integration Complete
+
+**Who:** ALL (Person A, Person B, Person C integration)
+
+**What was done:**
+- **Track Integration**: Successfully integrated all three Milestone 3 tracks into `main` and created the `checkpoint-3` release branch.
+  - **Person A (Backend Core)**: WebSocket room concurrency with `asyncio.Lock`, isolation timeouts (`3.0s`), standardized structured error handlers, and consultation close broadcast (`WS_1000`).
+  - **Person B (AI & Clinical Logic)**: Emergency rule engine regression covering all personas with boundary threshold validation (20/20 tests), clinical copy scanner ensuring zero definitive diagnoses, and in-memory availability rate telemetry.
+  - **Person C (Mobile App)**: Full UI copy audit across all 38 Dart files, mandatory non-diagnostic disclaimer verification on all non-emergency assessment cards, emergency screen isolation, and robust loading/empty/error states across all screens including `DoctorMapScreen`.
+- **Unified CI Pipeline (`.github/workflows/ci.yml`)**:
+  - Enforces running all test suites on pushes to `main`, `checkpoint-*`, `a/*`, `b/*`, and `c/*`:
+    1. Emergency Rule Engine Suite (`test_emergency_rule_engine.py`)
+    2. Specialty Mapper Suite (`test_specialty_mapper.py`)
+    3. Person B Clinical Suite (`test_person_b_m3.py`)
+    4. Person C Mobile UI Copy Audit Suite (`test_person_c_m3.py`)
+    5. Full Backend Test Suite (`server/tests/`)
+- **Full Test Suite Status**: 78/78 tests passing across the repository.
+
+**Verification Results:**
+```
+pytest server/tests/test_emergency_rule_engine.py: 20/20 passed
+pytest server/tests/test_specialty_mapper.py:      13/13 passed
+pytest server/tests/test_person_b_m3.py:           9/9 passed
+pytest server/tests/test_person_c_m3.py:           4/4 passed
+pytest server/tests/test_person_a_m1.py:           7/7 passed
+pytest server/tests/test_person_a_m2.py:           19/19 passed
+pytest server/tests/test_person_a_m3.py:           6/6 passed
+Total test suite:                                  78/78 PASSED (100%)
+```
+
+---
+
+## 2026-10-26 — Person C: Milestone 3 Hardening — UI Copy Audit, Mandatory Disclaimers & Resilience States
+
+**Who:** Person C (Mobile App Track)
+
+**What was done:**
+- **UI Copy Audit (Reference §18)**:
+  - Scanned all 38 Dart source files in `app/lib/` for forbidden diagnosis language (`you have <condition>`, `diagnosed with`, `the diagnosis is`, `prescribe`, etc.).
+  - Verified 0 instances of definitive diagnostic phrasing. All clinical outputs across patient and doctor views consistently frame assessments as "possible conditions" with likelihood indicators.
+  - Audited `app/lib/mocks/mock_assessments.json`: verified all mock personas include the required `_disclaimer` and contain zero forbidden diagnostic phrases.
+- **Mandatory Disclaimer Verification (Reference §10)**:
+  - Confirmed `DisclaimerBanner` widget renders the exact required copy:
+    `"This is an AI-generated possible-conditions read, not a medical diagnosis. A doctor makes the final call."`
+  - Verified `AssessmentResultScreen` unconditionally renders `DisclaimerBanner` on every non-emergency result.
+  - Verified `PatientHomeScreen` and `DoctorDashboardScreens` prominently display non-diagnostic labels on AI assessment reads.
+- **Emergency Screen Isolation (Reference §10, §12)**:
+  - Verified `EmergencyScreen` is completely decoupled from `AssessmentResultScreen` with zero possible conditions displayed.
+  - Direct 108 emergency dialer button, local hospital search, and guarded exit navigation (`PopScope` confirmation dialog) to prevent dismiss-and-forget.
+  - `AssessmentResultScreen` auto-redirects to `EmergencyScreen` if `result.isEmergency` is true.
+- **Resilience, Empty & Error States Across All Screens**:
+  - `DoctorListScreen`: loading spinner, empty state (`No verified doctors found`), error state with retry button, location-denied fallback banner.
+  - `DoctorMapScreen`: upgraded from placeholder to a functional screen with `AppBar`, back navigation, GPS location explanation, and return-to-list navigation. Wired into `app_router.dart`.
+  - `DoctorQueueScreen`: loading spinner, empty queue state (`No patients in queue`), error state with retry.
+  - `ChatScreen`: WS connecting banner with manual reconnect action, message history loading spinner, empty chat state, typing indicator.
+  - `ConsultationHistoryScreen`: empty history illustration with explanatory text and direct "Find Doctors" navigation button.
+  - `VitalsEntryScreen`: inline vitals range validation, submit button loading spinners, and skip vitals fallback.
+  - `SymptomInputScreens`: 20-character minimum enforcement with live counter, animated voice recording pulse, and mandatory editable transcript review warning.
+- **Automated Verification Suites**:
+  - Authored Flutter widget & unit test suite: `app/test/m3_ui_copy_and_resilience_test.dart` (disclaimer rendering, emergency redirect, degraded path display, mock compliance).
+  - Authored Python verification suite: `server/scripts/audit_mobile_ui.py` and `server/tests/test_person_c_m3.py` (4/4 tests passed in 0.2s).
+  - Configured `.github/workflows/ci.yml` on `c/app` to automatically run Person C's UI copy audit in CI.
+
+**Verification Results:**
+```
+python server/scripts/audit_mobile_ui.py:
+  [PASS] Mandatory Disclaimer: correctly defined and rendered in all assessment views.
+  [PASS] Diagnosis Copy: 0 forbidden diagnostic statements found in any Dart file.
+  [PASS] Mock Assessments: all fixtures adhere strictly to non-diagnostic schema.
+  [PASS] UI Resilience: Loading, error, empty, and reconnect states present across all flows.
+  ALL PERSON C MILESTONE 3 AUDITS PASSED!
+
+pytest server/tests/test_person_c_m3.py: 4/4 passed (100%)
+```
+
+**Gotchas / notes for next session:**
+- `DoctorMapScreen` provides GPS distance and list view guidance; full native OSM tiles are wired via mobile runtime plugins.
+- Defense-in-depth: Unverified doctors (`isVerified == false`) are filtered client-side in both list and profile views even if the API returns them.
+
+---
+
 ## 2026-10-26 — Person B: Milestone 3 Hardening — Emergency CI Regression, Copy Audit, Degraded-Path Telemetry & Reference §18 Tracking
 
 **Who:** Person B (AI & Clinical Logic Track)
@@ -65,7 +146,6 @@ Total test suite (server/tests/):                  74/74 PASSED (100%)
 
 ---
 
-
 ## 2026-10-26 — Person A: Milestone 3 Hardening — WebSocket Concurrency, Structured Errors & Test Suite
 
 **Who:** Person A (Backend Core)
@@ -99,34 +179,6 @@ Total test suite:                                  54/54 PASSED (100%)
 - `close_consultation` now closes active sockets asynchronously via `await manager.close_room`. Any client listening on the WebSocket can transition its UI directly to a "Consultation Resolved" state upon receiving the event frame.
 
 ---
-
-## 2026-10-26 — Person A: ntfy Notification Wiring, Environment Reconstruction & Database Seeding
-
-**Who:** Person A (Backend Core)
-
-**What was done:**
-- Reconstructed `server/.env` and `.env` with self-hosted stack defaults, 64-char JWT secret, and `sqlite:///storage/demo.db` for local standalone dev.
-- Added `NTFY_BASE_URL: str = "http://localhost:8080"` and `extra = "ignore"` to `server/app/config.py`.
-- Fully wired ntfy as the primary push transport in `server/app/services/notifications.py`:
-  - Implemented async fire-and-forget `_send_ntfy` with 3-second timeout.
-  - Doctor notifications dispatch to `aarogyamp-doctor-{doctor_id}`.
-  - Patient notifications dispatch to `aarogyamp-patient-{patient_id}`.
-  - Retained token registration endpoints (`/api/devices/register`) and dual-dispatch fallback to FCM if `FCM_SERVER_KEY` is present.
-- Seeded `server/storage/demo.db` with 8 synthetic verified doctors using `scripts/seed_doctors.py`.
-- Added unit test `test_ntfy_notifications_dispatch_safely` to `server/tests/test_person_a_m2.py`.
-
-**Verification Results:**
-```
-pytest server/tests/test_person_a_m1.py:           7/7 passed
-pytest server/tests/test_person_a_m2.py:           19/19 passed
-pytest server/tests/test_emergency_rule_engine.py: 9/9 passed
-pytest server/tests/test_specialty_mapper.py:      13/13 passed
-Total test suite:                                  48/48 PASSED
-```
-
-**Gotchas / notes for next session:**
-- Host machine has an active container (`algoclash-postgres`) running on port 5432. Local native development uses `DATABASE_URL=sqlite:///storage/demo.db` to prevent port collisions. If deploying with `docker compose up -d`, Docker Compose automatically routes `api` to its own internal PostgreSQL service (`postgres:5432`).
-- Flutter app (Person C) can now subscribe directly to `http://<server-ip>:8080/aarogyamp-patient-{patient_id}/sse` or `/ws` for incoming notifications without needing FCM tokens.
 
 ---
 

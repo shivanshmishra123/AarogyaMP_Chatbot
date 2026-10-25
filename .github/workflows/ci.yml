@@ -8,6 +8,8 @@ on:
       - "a/*"
       - "b/*"
       - "c/*"
+      - "checkpoint-*"
+      - "checkpoint*"
   pull_request:
     branches:
       - main
@@ -27,7 +29,6 @@ jobs:
       LLM_MODEL: llama3.1:8b
       ADMIN_OPS_TOKEN: ci_ops_token_test
 
-
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -44,11 +45,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r server/requirements.txt pyjwt
 
-
       - name: Create local storage directory
         run: |
           mkdir -p server/storage storage
-
 
       - name: Run Emergency Rule Engine Suite (Person B Clinical Safety Floor)
         run: |
@@ -61,6 +60,10 @@ jobs:
       - name: Run Person B Milestone 3 Hardening & Audit Suite
         run: |
           python -m pytest server/tests/test_person_b_m3.py -v
+
+      - name: Run Person C Mobile UI Copy Audit Suite
+        run: |
+          python -m pytest server/tests/test_person_c_m3.py -v
 
       - name: Run Full Backend Test Suite
         run: |

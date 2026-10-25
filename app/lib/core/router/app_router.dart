@@ -14,6 +14,7 @@ import '../../features/symptom_intake/vitals_entry_screen.dart';
 import '../../features/assessment/assessment_result_screen.dart';
 import '../../features/assessment/emergency_screen.dart';
 import '../../features/doctor_directory/doctor_list_screen.dart';
+import '../../features/doctor_directory/doctor_map_screen.dart';
 import '../../features/chat/chat_screen.dart';
 import '../../features/doctor_dashboard/doctor_dashboard_screens.dart'
     hide ConsultationHistoryScreen;
@@ -180,7 +181,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Routes.doctorMap,
-        builder: (context, state) => const _DoctorMapPlaceholder(),
+        builder: (context, state) => const DoctorMapScreen(),
       ),
       GoRoute(
         path: '/doctors/:id',
@@ -341,29 +342,3 @@ class _SplashScreenState extends ConsumerState<_SplashScreen> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Doctor Map Placeholder (M2 feature — Google Maps wired later)
-// ─────────────────────────────────────────────────────────────────────────────
-class _DoctorMapPlaceholder extends StatelessWidget {
-  const _DoctorMapPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Doctor Map'),
-        leading: BackButton(onPressed: () => context.pop()),
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.map_outlined, size: 48, color: Color(0xFFBDC9C1)),
-            SizedBox(height: 12),
-            Text('Map view — available in M2 after Google Maps integration'),
-          ],
-        ),
-      ),
-    );
-  }
-}
