@@ -27,6 +27,7 @@ Milestone 2 changes:
     and mandate the non-diagnostic disclaimer in every response.
   - Audited across all synthetic personas — see scripts/audit_all_personas.py.
 """
+import asyncio
 import json
 import logging
 import re
@@ -148,12 +149,22 @@ Output STRICT JSON matching this exact schema (no other text):
 # ── Response parsing ──────────────────────────────────────────
 
 def _strip_markdown_fences(text: str) -> str:
-    """Remove ```json ... ``` or ``` ... ``` wrapping if present."""
+    """Remove ```json ... ``` or ``` ... ``` wrapping if present, and repair missing closing brace."""
     text = text.strip()
     pattern = r"^```(?:json)?\s*\n?(.*?)\n?\s*```$"
     match = re.match(pattern, text, re.DOTALL)
     if match:
-        return match.group(1).strip()
+        text = match.group(1).strip()
+    else:
+        # Also check for embedded markdown code blocks
+        sub_pattern = r"```(?:json)?\s*\n?(.*?)\n?\s*```"
+        sub_match = re.search(sub_pattern, text, re.DOTALL)
+        if sub_match:
+            text = sub_match.group(1).strip()
+
+    # Repair if starts with { but missing trailing }
+    if text.startswith("{") and not text.endswith("}"):
+        text = text + "\n}"
     return text
 
 
@@ -181,14 +192,17 @@ def _parse_and_validate(raw_response: str) -> Optional[LLMAssessmentOutput]:
 async def _call_llm(user_prompt: str) -> Optional[str]:
     """Make the actual LLM API call. Returns raw content string or None on failure."""
     try:
-        response = await _client.chat.completions.create(
-            model=settings.LLM_MODEL,
-            messages=[
-                {"role": "system", "content": _SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.3,
-            max_tokens=1024,
+        response = await asyncio.wait_for(
+            _client.chat.completions.create(
+                model=settings.LLM_MODEL,
+                messages=[
+                    {"role": "system", "content": _SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.3,
+                max_tokens=500,
+            ),
+            timeout=float(settings.LLM_TIMEOUT_SECONDS),
         )
         content = response.choices[0].message.content
         logger.info("LLM raw response: %s", content)

@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     # Server
     PORT: int = 8000
     CORS_ORIGINS: str = "*"
+    LLM_TIMEOUT_SECONDS: int = 75
 
     # Database
     DATABASE_URL: str = "postgresql+psycopg://aarogya:aarogya@localhost:5432/aarogyamp"

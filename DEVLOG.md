@@ -4,6 +4,32 @@
 
 ---
 
+## 2026-10-26 — Fix: Urgency Check Connection Timeout & Local Ollama LLM Resilience Pass
+
+**Who:** Person B & Person C (AI Engine & App Resilience)
+
+**What was done:**
+- **Resolved Dio Connection Timeout on Assessment Submission (`vitals_entry_screen.dart` -> `POST /api/assessments`)**:
+  - **Root Cause**: Flutter `Dio` client in `app/lib/core/api/api_client.dart` was hardcoded to `connectTimeout: const Duration(seconds: 15)` and `receiveTimeout: const Duration(seconds: 30)`. When running on CPU via Docker Ollama, `llama3.2` inference takes 25–65s to evaluate the 590-token prompt and generate clinical guidance. At exactly 15.0s, Dio aborted the connection and displayed the red SnackBar error.
+  - **Client Timeout Adjustment**:
+    - Increased `connectTimeout: const Duration(seconds: 90)` in `buildBareDio()` and `_buildAuthenticatedDio()`.
+    - Increased `receiveTimeout: const Duration(seconds: 90)` and added `sendTimeout: const Duration(seconds: 60)`.
+  - **LLM Pipeline Hardening (`server/app/services/ai_symptom_engine.py`)**:
+    - Wrapped LLM chat completion in explicit `asyncio.wait_for(..., timeout=float(settings.LLM_TIMEOUT_SECONDS))` to guarantee the backend never hangs indefinitely.
+    - Set `max_tokens=500` (reduced from 1024) to constrain CPU inference time to needed output length.
+    - Enhanced `_strip_markdown_fences` to handle embedded markdown fences and auto-repair missing closing braces `}` on edge-case token boundaries.
+  - **Timeout Cascade Architecture**:
+    - Configured `LLM_TIMEOUT_SECONDS=75` in `server/app/config.py` and `server/.env`.
+    - Cascade order: LLM inference (~30–65s) -> Backend timeout (75s, triggers degraded `ai_status="unavailable"` / MODERATE risk fallback) -> Client HTTP timeout (90s). The client will never experience a connection abort or unhandled network exception.
+  - **Ollama In-Memory Model Residency**:
+    - Model `llama3.2` locked into RAM with `keep_alive: -1`, eliminating cold-start tensor loading delays.
+  - **Verification**:
+    - End-to-end `POST /api/assessments` succeeds synchronously (`HTTP 200 OK`, `ai_status="ok"`, risk level `MODERATE`, valid non-diagnostic conditions and recommendations).
+    - Degraded path verified: when LLM is unavailable, returns clean fallback response in under timeout limits.
+    - Pytest suite: 78 passed, 0 failed (`python -m pytest server/tests/ -v`).
+
+---
+
 ## 2026-10-26 — Frontend UI: Full Stitch UI Prototype Alignment & Deflection Resolution
 
 **Who:** Person C (Mobile Frontend Track)
