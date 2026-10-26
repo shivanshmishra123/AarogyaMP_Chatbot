@@ -32,6 +32,7 @@ class DoctorListScreen extends ConsumerStatefulWidget {
 
 class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
   String? _selectedSpecialty;
+  double? _selectedRadiusKm; // null = All (सभी), 5.0, 10.0, 25.0, 50.0
   late Future<List<Doctor>> _doctorsFuture;
 
   // Location state
@@ -55,23 +56,30 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
     'Mental Health Professional',
   ];
 
+  static const List<double?> _radiusOptions = [
+    null,
+    5.0,
+    10.0,
+    25.0,
+    50.0,
+  ];
+
   @override
   void initState() {
     super.initState();
     _selectedSpecialty = widget.initialSpecialty;
-    // Always initialize _doctorsFuture synchronously so build() never encounters uninitialized late field
     _loadDoctors();
     if (!_useMocks) {
       _initLocation();
     }
   }
 
-  /// Try to get device location; gracefully fall back on denial.
+  /// Try to get device location via GPS; gracefully fall back on denial or timeout.
   Future<void> _initLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!mounted) return;
       if (!serviceEnabled) {
+        if (!mounted) return;
         setState(() {
           _locationDenied = true;
           _loadDoctors();
@@ -80,13 +88,12 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
       }
 
       LocationPermission permission = await Geolocator.checkPermission();
-      if (!mounted) return;
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (!mounted) return;
       }
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
+        if (!mounted) return;
         setState(() {
           _locationDenied = true;
           _loadDoctors();
@@ -95,7 +102,8 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
       }
 
       final pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.low, // low = faster, sufficient for ~km radius
+        desiredAccuracy: LocationAccuracy.medium,
+        timeLimit: const Duration(seconds: 6),
       );
       if (!mounted) return;
       setState(() {
@@ -104,6 +112,17 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
         _locationDenied = false;
         _loadDoctors();
       });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(
+            content: Text('GPS स्थान प्राप्त: ${pos.latitude.toStringAsFixed(2)}°N, ${pos.longitude.toStringAsFixed(2)}°E'),
+            duration: const Duration(seconds: 2),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -111,6 +130,25 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
         _loadDoctors();
       });
     }
+  }
+
+  void _setBhopalDemoLocation() {
+    setState(() {
+      _lat = 23.2599;
+      _lng = 77.4126;
+      _locationDenied = false;
+      _loadDoctors();
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(
+          content: Text('भोपाल संदर्भ स्थान सेट किया गया (Bhopal Central MP set)'),
+          duration: Duration(seconds: 2),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+    });
   }
 
   void _loadDoctors() {
@@ -124,8 +162,7 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
             specialty: specialty,
             lat: _lat,
             lng: _lng,
-            // 50 km radius when we have coords
-            radiusKm: (_lat != null && _lng != null) ? 50.0 : null,
+            radiusKm: _selectedRadiusKm,
           );
     }
   }
@@ -138,14 +175,20 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
         title: 'AarogyaMP',
         subtitle: 'Find Doctors',
         showBack: true,
-        onBackTap: () => context.pop(),
+        onBackTap: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go(Routes.patientHome);
+          }
+        },
       ),
       body: SafeArea(
         child: Column(
           children: [
             // ── 1. Top Geo-Location & Area Card (Stitch Reference) ───────────
             Container(
-              margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              margin: const EdgeInsets.fromLTRB(16, 12, 16, 6),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -162,94 +205,105 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
               child: Column(
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Row(
+                      const Icon(Icons.location_on, color: AppColors.primary, size: 22),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'वर्तमान स्थान / Current Area',
+                              style: TextStyle(
+                                fontFamily: 'NotoSans',
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.onSurfaceVariant,
+                              ),
+                            ),
+                            Text(
+                              _lat != null && _lng != null
+                                  ? (_lat == 23.2599 && _lng == 77.4126
+                                      ? 'अरेरा कॉलोनी, भोपाल (23.26°N, 77.41°E)'
+                                      : 'GPS: ${_lat!.toStringAsFixed(2)}°N, ${_lng!.toStringAsFixed(2)}°E (स्थान सक्रिय)')
+                                  : 'स्थान अनिर्धारित (Location Not Set)',
+                              style: const TextStyle(
+                                fontFamily: 'NotoSans',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.onSurface,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      // Action buttons: GPS detection + Bhopal Demo Quick Preset
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.location_on, color: AppColors.primary, size: 20),
-                          SizedBox(width: 8),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'वर्तमान स्थान / Current Area',
-                                style: TextStyle(
-                                  fontFamily: 'NotoSans',
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.onSurfaceVariant,
+                          IconButton(
+                            onPressed: _setBhopalDemoLocation,
+                            tooltip: 'भोपाल डेमो स्थान / Bhopal Demo',
+                            icon: const Icon(Icons.location_city_rounded, size: 18, color: AppColors.secondary),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              _initLocation();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('GPS स्थान खोजा जा रहा है... (Detecting GPS)'),
+                                  duration: Duration(seconds: 1),
                                 ),
+                              );
+                            },
+                            icon: const Icon(Icons.my_location_rounded, size: 13),
+                            label: const Text('जीपीएस / GPS'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              textStyle: const TextStyle(
+                                fontFamily: 'NotoSans',
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
                               ),
-                              Text(
-                                'अरेरा कॉलोनी, भोपाल (Arera Colony)',
-                                style: TextStyle(
-                                  fontFamily: 'NotoSans',
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.onSurface,
-                                ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                            ],
+                            ),
                           ),
                         ],
                       ),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          _initLocation();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('GPS स्थान अपडेट किया जा रहा है... (Updating GPS)'),
-                              duration: Duration(seconds: 1),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.my_location_rounded, size: 14),
-                        label: const Text('जीपीएस / GPS'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.surfaceContainer,
-                          foregroundColor: AppColors.onSurface,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          textStyle: const TextStyle(
-                            fontFamily: 'NotoSans',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceContainerLow,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.search, size: 16, color: AppColors.onSurfaceVariant),
-                        SizedBox(width: 8),
+                        const Icon(Icons.verified_outlined, size: 14, color: AppColors.primary),
+                        const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            '462016 - भोपाल दक्षिण (Bhopal South)',
-                            style: TextStyle(
+                            _lat != null && _lng != null
+                                ? 'दूरी गणना सक्रिय (Distance calculation active)'
+                                : 'जीपीएस चालू करें अथवा भोपाल डेमो चुनें दूरी देखने के लिए',
+                            style: const TextStyle(
                               fontFamily: 'NotoSans',
-                              fontSize: 12,
+                              fontSize: 11,
                               color: AppColors.onSurfaceVariant,
                             ),
-                          ),
-                        ),
-                        Text(
-                          'बदलें',
-                          style: TextStyle(
-                            fontFamily: 'NotoSans',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -262,8 +316,8 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
             // Location denied banner (live mode only)
             if (!_useMocks && _locationDenied)
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFFBEB),
                   borderRadius: BorderRadius.circular(8),
@@ -271,56 +325,53 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.location_off_outlined,
-                        size: 16, color: Color(0xFFD97706)),
+                    const Icon(Icons.location_off_outlined, size: 15, color: Color(0xFFD97706)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'स्थान अनुपलब्ध — सभी डॉक्टर दिखाए जा रहे हैं (Showing all doctors)',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: const Color(0xFF92400E),
+                              fontSize: 11,
                             ),
                       ),
                     ),
                     TextButton(
-                      onPressed: () {
-                        setState(() => _locationDenied = false);
-                        _initLocation();
-                      },
+                      onPressed: _setBhopalDemoLocation,
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      child: const Text('पुनः प्रयास',
+                      child: const Text('भोपाल चुनें',
                           style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF059669))),
                     ),
                   ],
                 ),
               ),
 
-            // ── 2. Specialty & Filters Horizontal Rail (Stitch Reference) ────
+            // ── 2. Specialty & Distance Filter Rails ─────────────────────────
             Container(
-              color: Colors.transparent,
-              padding: const EdgeInsets.only(top: 4, bottom: 8),
+              padding: const EdgeInsets.only(top: 2, bottom: 6),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Specialty Rail Header
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'विशेषज्ञता एवं फ़िल्टर / Specialty & Filters',
+                          'विशेषज्ञता / Specialty',
                           style: TextStyle(
                             fontFamily: 'NotoSans',
                             fontSize: 11,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
                             color: AppColors.onSurfaceVariant,
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                           decoration: BoxDecoration(
                             color: AppColors.primaryLight,
                             borderRadius: BorderRadius.circular(4),
@@ -338,14 +389,15 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
+                  // Specialty Chips
                   SizedBox(
-                    height: 36,
+                    height: 32,
                     child: ListView.separated(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       scrollDirection: Axis.horizontal,
                       itemCount: _specialties.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      separatorBuilder: (_, __) => const SizedBox(width: 6),
                       itemBuilder: (context, i) {
                         final s = _specialties[i];
                         final selected = _selectedSpecialty == s ||
@@ -367,14 +419,102 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                           backgroundColor: Colors.white,
                           selectedColor: AppColors.primary,
                           checkmarkColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
                           labelStyle: TextStyle(
                             fontFamily: 'NotoSans',
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                             color: selected ? Colors.white : AppColors.onSurface,
                           ),
                           side: BorderSide(
                             color: selected ? AppColors.primary : AppColors.surfaceBorder,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(9999),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+
+                  // Distance Filter Rail
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.near_me_rounded, size: 13, color: AppColors.secondary),
+                        const SizedBox(width: 4),
+                        const Text(
+                          'दूरी दायरा / Distance Filter:',
+                          style: TextStyle(
+                            fontFamily: 'NotoSans',
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (_selectedRadiusKm != null)
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedRadiusKm = null;
+                                _loadDoctors();
+                              });
+                            },
+                            child: const Text(
+                              'रीसेट / Clear',
+                              style: TextStyle(
+                                fontFamily: 'NotoSans',
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // Distance Chips
+                  SizedBox(
+                    height: 30,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _radiusOptions.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 6),
+                      itemBuilder: (context, i) {
+                        final r = _radiusOptions[i];
+                        final selected = _selectedRadiusKm == r;
+                        final label = r == null ? 'सभी दूरी / All' : '< ${r.toInt()} km';
+                        return FilterChip(
+                          label: Text(label),
+                          selected: selected,
+                          onSelected: (_) {
+                            setState(() {
+                              _selectedRadiusKm = r;
+                              if (r != null && _lat == null) {
+                                // Auto-set Bhopal demo coordinates if user wants to filter distance but GPS is unset
+                                _lat = 23.2599;
+                                _lng = 77.4126;
+                              }
+                              _loadDoctors();
+                            });
+                          },
+                          backgroundColor: Colors.white,
+                          selectedColor: AppColors.secondary,
+                          checkmarkColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                          labelStyle: TextStyle(
+                            fontFamily: 'NotoSans',
+                            fontSize: 11,
+                            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                            color: selected ? Colors.white : AppColors.onSurface,
+                          ),
+                          side: BorderSide(
+                            color: selected ? AppColors.secondary : AppColors.surfaceBorder,
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(9999),
@@ -431,23 +571,55 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                   final doctors = snap.data ?? [];
                   if (doctors.isEmpty) {
                     return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.search_off_rounded,
-                              size: 48, color: AppColors.outlineVariant),
-                          const SizedBox(height: 12),
-                          Text(
-                            'कोई सत्यापित डॉक्टर उपलब्ध नहीं है\n(No verified doctors found).',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  color: AppColors.onSurfaceVariant,
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.search_off_rounded,
+                                size: 48, color: AppColors.outlineVariant),
+                            const SizedBox(height: 12),
+                            Text(
+                              _selectedRadiusKm != null
+                                  ? 'चयनित दायरे (< ${_selectedRadiusKm!.toInt()} km) में कोई डॉक्टर नहीं मिला।\n(No verified doctors within ${_selectedRadiusKm!.toInt()} km).'
+                                  : (_selectedSpecialty != null
+                                      ? 'विशेषज्ञता "$_selectedSpecialty" के लिए कोई डॉक्टर उपलब्ध नहीं है।\n(No doctors found for this specialty).'
+                                      : 'कोई सत्यापित डॉक्टर उपलब्ध नहीं है\n(No verified doctors found).'),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: AppColors.onSurfaceVariant,
+                                  ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            if (_selectedRadiusKm != null || _selectedSpecialty != null)
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  setState(() {
+                                    _selectedRadiusKm = null;
+                                    _selectedSpecialty = null;
+                                    _loadDoctors();
+                                  });
+                                },
+                                icon: const Icon(Icons.all_inclusive_rounded, size: 16),
+                                label: const Text('सभी डॉक्टर देखें / Show All Doctors'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
                                 ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                              ),
+                            if (_lat == null || _lat != 23.2599) ...[
+                              const SizedBox(height: 8),
+                              OutlinedButton.icon(
+                                onPressed: _setBhopalDemoLocation,
+                                icon: const Icon(Icons.location_city_rounded, size: 16),
+                                label: const Text('भोपाल डेमो स्थान सेट करें (Bhopal Demo)'),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     );
                   }
@@ -484,6 +656,15 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
             fontWeight: FontWeight.w700,
           ),
         ),
+      ),
+      bottomNavigationBar: AppBottomNav(
+        currentIndex: 2,
+        onTap: (i) {
+          if (i == 0) context.go(Routes.patientHome);
+          if (i == 1) context.push(Routes.symptomVoice);
+          if (i == 2) {} // already on doctorList
+          if (i == 3) context.push(Routes.history);
+        },
       ),
     );
   }

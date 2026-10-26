@@ -78,9 +78,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isAuth = authState.isAuthenticated;
       final loc = state.uri.toString();
 
-      // Unauthenticated: allow only splash, login, register
-      final publicRoutes = [Routes.splash, Routes.login, Routes.register];
-      if (!isAuth && !publicRoutes.contains(loc)) {
+      // Unauthenticated: allow splash, login, register, emergency, and public doctor directory browsing
+      final isPublicRoute = loc == Routes.splash ||
+          loc == Routes.login ||
+          loc == Routes.register ||
+          loc == Routes.emergency ||
+          loc.startsWith('/doctors');
+      if (!isAuth && !isPublicRoute) {
         return Routes.login;
       }
 

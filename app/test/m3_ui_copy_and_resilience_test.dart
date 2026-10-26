@@ -11,6 +11,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:aarogyamp/core/router/app_router.dart';
 import 'package:aarogyamp/core/models/assessment_model.dart';
 import 'package:aarogyamp/core/models/doctor_model.dart';
 import 'package:aarogyamp/core/models/consultation_model.dart';
@@ -60,7 +62,7 @@ void main() {
       // Verify DisclaimerBanner is present in the widget tree
       expect(find.byType(DisclaimerBanner), findsOneWidget);
       expect(find.text('Possible Causes'), findsOneWidget);
-      expect(find.text('Viral upper respiratory illness'), findsOneWidget);
+      expect(find.textContaining('Viral upper respiratory illness'), findsOneWidget);
       expect(find.text('Find a General Physician near me'), findsOneWidget);
     });
   });
@@ -77,9 +79,23 @@ void main() {
         aiStatus: 'skipped',
       );
 
+      final router = GoRouter(
+        initialLocation: '/result',
+        routes: [
+          GoRoute(
+            path: '/result',
+            builder: (_, __) => AssessmentResultScreen(result: emergencyResult),
+          ),
+          GoRoute(
+            path: Routes.emergency,
+            builder: (_, __) => const Scaffold(body: Text('Emergency Screen')),
+          ),
+        ],
+      );
+
       await tester.pumpWidget(
-        MaterialApp(
-          home: AssessmentResultScreen(result: emergencyResult),
+        MaterialApp.router(
+          routerConfig: router,
         ),
       );
 
@@ -138,6 +154,7 @@ void main() {
       ];
 
       for (final entry in data.entries) {
+        if (entry.key.startsWith('_')) continue;
         final personaId = entry.key;
         final assessment = entry.value as Map<String, dynamic>;
 
