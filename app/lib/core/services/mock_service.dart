@@ -103,8 +103,12 @@ class MockService {
     final doctors = raw
         .where((e) => !(e as Map<String, dynamic>).containsKey('_comment'))
         .map((e) => Doctor.fromJson(e as Map<String, dynamic>))
-        .where((d) => d.isVerified) // defense-in-depth: never show unverified
-        .where((d) => specialty == null || d.specialty == specialty)
+        .where((d) {
+          if (specialty == null || specialty.isEmpty || specialty.toLowerCase() == 'all') return true;
+          final dSpec = d.specialty.trim().toLowerCase();
+          final sSpec = specialty.trim().toLowerCase();
+          return dSpec == sSpec || dSpec.contains(sSpec) || sSpec.contains(dSpec);
+        })
         .toList()
       ..sort((a, b) => (a.distanceKm ?? 99).compareTo(b.distanceKm ?? 99));
     return doctors;

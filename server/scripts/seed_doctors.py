@@ -23,10 +23,20 @@ def seed_doctors(quiet: bool = False):
     init_db()
     db = SessionLocal()
 
-    mock_path = server_dir.parent / "app" / "lib" / "mocks" / "mock_doctors.json"
-    if not mock_path.exists():
+    candidates = [
+        server_dir / "app" / "data" / "mock_doctors.json",
+        server_dir.parent / "app" / "lib" / "mocks" / "mock_doctors.json",
+        Path("/app/app/data/mock_doctors.json"),
+    ]
+    mock_path = None
+    for p in candidates:
+        if p.exists():
+            mock_path = p
+            break
+
+    if mock_path is None:
         if not quiet:
-            print(f"Mock file not found: {mock_path}")
+            print("Mock doctors file not found in any known locations.")
         return
 
     with open(mock_path, "r", encoding="utf-8") as f:

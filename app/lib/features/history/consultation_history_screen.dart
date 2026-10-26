@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/providers/locale_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
@@ -16,66 +17,66 @@ class ConsultationHistoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(authProvider);
-    final history = ref.read(authProvider.notifier).getConsultationHistory();
+    final auth = ref.watch(authProvider);
+    final isHindi = ref.watch(isHindiProvider);
+    final history = auth.consultations.isNotEmpty
+        ? auth.consultations
+        : ref.read(authProvider.notifier).getConsultationHistory();
 
     return Scaffold(
       backgroundColor: const Color(0xFFE7FEFC),
+      appBar: const StitchHeader(subtitle: 'Records & History'),
       body: SafeArea(
-        child: Column(
-          children: [
-            const StitchHeader(subtitle: 'Records & History'),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // ABDM Digital Health Locker Banner
-                    _buildAbdmLockerBanner(),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ABDM Digital Health Locker Banner
+              _buildAbdmLockerBanner(),
 
-                    // Section Title
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Row(
-                            children: [
-                              Icon(Icons.history_rounded, size: 20, color: AppColors.primary),
-                              SizedBox(width: 8),
-                              Text(
-                                'परामर्श इतिहास / Consultations',
-                                style: TextStyle(
-                                  fontFamily: 'NotoSans',
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF0A1F1E),
-                                ),
-                              ),
-                            ],
+              // Section Title
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.history_rounded, size: 20, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          isHindi ? 'परामर्श इतिहास' : 'Consultations',
+                          style: const TextStyle(
+                            fontFamily: 'NotoSans',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0A1F1E),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFDCF2F0),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '${history.length} रिकॉर्ड',
-                              style: const TextStyle(
-                                fontFamily: 'NotoSans',
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDCF2F0),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${history.length} ${isHindi ? 'रिकॉर्ड' : 'Records'}',
+                        style: const TextStyle(
+                          fontFamily: 'NotoSans',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
+                  ],
+                ),
+              ),
 
-                    if (history.isEmpty)
-                      _buildEmptyState(context)
+              if (history.isEmpty)
+                _buildEmptyState(context, isHindi)
                     else
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -95,15 +96,12 @@ class ConsultationHistoryScreen extends ConsumerWidget {
                 ),
               ),
             ),
-          ],
-        ),
-      ),
       bottomNavigationBar: AppBottomNav(
         currentIndex: 3,
         onTap: (i) {
           if (i == 0) context.go(Routes.patientHome);
-          if (i == 1) context.push(Routes.symptomVoice);
-          if (i == 2) context.push(Routes.doctorList);
+          if (i == 1) context.go(Routes.symptomVoice);
+          if (i == 2) context.go(Routes.doctorList);
           if (i == 3) {} // already here
         },
       ),
@@ -170,7 +168,7 @@ class ConsultationHistoryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, bool isHindi) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       padding: const EdgeInsets.all(24),
@@ -195,30 +193,22 @@ class ConsultationHistoryScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'No Consultation History',
-            style: TextStyle(
+          Text(
+            isHindi ? 'कोई पूर्व परामर्श नहीं मिला' : 'No Consultation History',
+            style: const TextStyle(
               fontFamily: 'NotoSans',
               fontSize: 15,
               fontWeight: FontWeight.w800,
               color: Color(0xFF0A1F1E),
             ),
           ),
-          const SizedBox(height: 2),
-          const Text(
-            'कोई पूर्व परामर्श नहीं मिला',
-            style: TextStyle(
-              fontFamily: 'NotoSans',
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF6E7A73),
-            ),
-          ),
           const SizedBox(height: 6),
-          const Text(
-            'जब आप सत्यापित डॉक्टरों से परामर्श लेंगे, तो आपकी बातचीत, सलाह व प्रिस्क्रिप्शन यहां दिखाई देंगे।',
+          Text(
+            isHindi
+                ? 'जब आप सत्यापित डॉक्टरों से परामर्श लेंगे, तो आपकी बातचीत, सलाह व प्रिस्क्रिप्शन यहां दिखाई देंगे।'
+                : 'When you consult verified doctors, your consultation chats and recommendations will appear here.',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontFamily: 'NotoSans',
               fontSize: 12,
               color: Color(0xFF6E7A73),
@@ -235,9 +225,9 @@ class ConsultationHistoryScreen extends ConsumerWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             icon: const Icon(Icons.person_search_rounded, size: 18),
-            label: const Text(
-              'सत्यापित डॉक्टर खोजें / Find Doctors',
-              style: TextStyle(fontFamily: 'NotoSans', fontSize: 13, fontWeight: FontWeight.w700),
+            label: Text(
+              isHindi ? 'सत्यापित डॉक्टर खोजें' : 'Find Verified Doctors',
+              style: const TextStyle(fontFamily: 'NotoSans', fontSize: 13, fontWeight: FontWeight.w700),
             ),
           ),
         ],

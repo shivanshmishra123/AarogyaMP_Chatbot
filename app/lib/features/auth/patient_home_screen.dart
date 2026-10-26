@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/providers/locale_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../widgets/shared_widgets.dart';
 
@@ -42,16 +43,17 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isHindi = ref.watch(isHindiProvider);
     final auth = ref.watch(authProvider);
     final patientName = (auth.name != null && auth.name!.isNotEmpty)
         ? auth.name!
-        : 'रामेश्वर जी';
+        : (isHindi ? 'रामेश्वर जी' : 'Rameshwar Ji');
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: StitchHeader(
         title: 'AarogyaMP',
-        subtitle: 'Home',
+        subtitle: isHindi ? 'मुख्य पृष्ठ' : 'Home',
         onProfileTap: () => _showProfileSheet(context, ref, auth),
       ),
       body: SafeArea(
@@ -92,13 +94,13 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                       ),
                     ),
                     const SizedBox(width: 10),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'आपातकाल / Emergency?',
-                            style: TextStyle(
+                            isHindi ? 'आपातकाल?' : 'Emergency?',
+                            style: const TextStyle(
                               fontFamily: 'NotoSans',
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
@@ -106,8 +108,8 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                             ),
                           ),
                           Text(
-                            'तुरंत 108 डायल करें • Dial 108 immediately',
-                            style: TextStyle(
+                            isHindi ? 'तुरंत 108 डायल करें • एम्बुलेंस सहायता' : 'Dial 108 immediately for ambulance',
+                            style: const TextStyle(
                               fontFamily: 'NotoSans',
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
@@ -187,9 +189,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                                 ),
                               ),
                               const SizedBox(width: 6),
-                              const Text(
-                                'सक्रिय स्वास्थ्य मित्र • Active Health ID',
-                                style: TextStyle(
+                              Text(
+                                isHindi ? 'सक्रिय स्वास्थ्य मित्र' : 'Active Health ID',
+                                style: const TextStyle(
                                   fontFamily: 'NotoSans',
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
@@ -201,7 +203,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'नमस्ते, $patientName',
+                            isHindi ? 'नमस्ते, $patientName' : 'Hello, $patientName',
                             style: const TextStyle(
                               fontFamily: 'NotoSans',
                               fontSize: 22,
@@ -210,13 +212,13 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                             ),
                           ),
                           const SizedBox(height: 4),
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.location_on, color: AppColors.primary, size: 16),
-                              SizedBox(width: 4),
+                              const Icon(Icons.location_on, color: AppColors.primary, size: 16),
+                              const SizedBox(width: 4),
                               Text(
-                                'भोपाल, म.प्र. (Bhopal, MP)',
-                                style: TextStyle(
+                                isHindi ? 'भोपाल, मध्य प्रदेश' : 'Bhopal, MP',
+                                style: const TextStyle(
                                   fontFamily: 'NotoSans',
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
@@ -288,14 +290,14 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                         color: AppColors.surfaceContainer,
                         borderRadius: BorderRadius.circular(9999),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.spa_rounded, color: AppColors.primary, size: 15),
-                          SizedBox(width: 5),
+                          const Icon(Icons.spa_rounded, color: AppColors.primary, size: 15),
+                          const SizedBox(width: 5),
                           Text(
-                            'सार्वजनिक स्वास्थ्य सहायता • Public Health Support',
-                            style: TextStyle(
+                            isHindi ? 'सार्वजनिक स्वास्थ्य सहायता' : 'Public Health Support',
+                            style: const TextStyle(
                               fontFamily: 'NotoSans',
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -306,9 +308,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                       ),
                     ),
                     const SizedBox(height: 14),
-                    const Text(
-                      'आप कैसा महसूस कर रहे हैं?',
-                      style: TextStyle(
+                    Text(
+                      isHindi ? 'आप कैसा महसूस कर रहे हैं?' : 'How are you feeling today?',
+                      style: const TextStyle(
                         fontFamily: 'NotoSans',
                         fontSize: 21,
                         fontWeight: FontWeight.w700,
@@ -316,12 +318,14 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      'How are you feeling today?',
-                      style: TextStyle(
+                    const SizedBox(height: 4),
+                    Text(
+                      isHindi
+                          ? 'लक्षण बताएं और तुरंत शासकीय प्राथमिक परामर्श पाएं'
+                          : 'Share your symptoms to get quick clinical triage',
+                      style: const TextStyle(
                         fontFamily: 'NotoSans',
-                        fontSize: 14,
+                        fontSize: 13,
                         fontWeight: FontWeight.w500,
                         color: AppColors.onSurfaceVariant,
                       ),
@@ -379,9 +383,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                       },
                     ),
                     const SizedBox(height: 20),
-                    const Text(
-                      'लक्षण बोलकर बताएं',
-                      style: TextStyle(
+                    Text(
+                      isHindi ? 'लक्षण बोलकर बताएं' : 'Speak Symptoms',
+                      style: const TextStyle(
                         fontFamily: 'NotoSans',
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -389,9 +393,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                       ),
                     ),
                     const SizedBox(height: 2),
-                    const Text(
-                      'Speak Symptoms (बुजुर्गों और सभी के लिए आसान)',
-                      style: TextStyle(
+                    Text(
+                      isHindi ? 'सभी के लिए सरल और सहज ध्वनि इनपुट' : 'Quick and natural voice-to-AI intake',
+                      style: const TextStyle(
                         fontFamily: 'NotoSans',
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -404,9 +408,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                     OutlinedButton.icon(
                       onPressed: () => context.push(Routes.symptomText),
                       icon: const Icon(Icons.keyboard_outlined, size: 20, color: AppColors.primary),
-                      label: const Text(
-                        'टाइप करके लिखें / Type Symptoms',
-                        style: TextStyle(
+                      label: Text(
+                        isHindi ? 'टाइप करके लिखें' : 'Type Symptoms',
+                        style: const TextStyle(
                           fontFamily: 'NotoSans',
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -459,23 +463,25 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                               color: AppColors.primary, size: 22),
                         ),
                         const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'स्वास्थ्य जांच (वैकल्पिक)',
-                                style: TextStyle(
+                                isHindi ? 'स्वास्थ्य माप' : 'Enter Vitals',
+                                style: const TextStyle(
                                   fontFamily: 'NotoSans',
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.onSurface,
                                 ),
                               ),
-                              SizedBox(height: 2),
+                              const SizedBox(height: 2),
                               Text(
-                                'Enter Vitals (Optional) • BP, Sugar, SpO2, Temp',
-                                style: TextStyle(
+                                isHindi
+                                    ? 'बीपी, शुगर, ऑक्सीजन, तापमान'
+                                    : 'BP, Sugar, SpO2, Temperature',
+                                style: const TextStyle(
                                   fontFamily: 'NotoSans',
                                   fontSize: 12,
                                   color: AppColors.onSurfaceVariant,
@@ -490,9 +496,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                             color: AppColors.surfaceContainer,
                             borderRadius: BorderRadius.circular(9999),
                           ),
-                          child: const Text(
-                            'वैकल्पिक',
-                            style: TextStyle(
+                          child: Text(
+                            isHindi ? 'वैकल्पिक' : 'Optional',
+                            style: const TextStyle(
                               fontFamily: 'NotoSans',
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
@@ -505,31 +511,31 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                     const SizedBox(height: 14),
 
                     // 4-Column Vitals Metric Preview Grid
-                    const Row(
+                    Row(
                       children: [
                         _VitalPill(
-                          label: 'बीपी / BP',
+                          label: isHindi ? 'रक्तचाप' : 'BP',
                           value: '120/80',
                           unit: 'mmHg',
                           color: AppColors.primary,
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         _VitalPill(
-                          label: 'शुगर / Sugar',
+                          label: isHindi ? 'शुगर' : 'Sugar',
                           value: '104',
                           unit: 'mg/dL',
                           color: AppColors.primary,
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         _VitalPill(
-                          label: 'ऑक्सीजन',
+                          label: isHindi ? 'ऑक्सीजन' : 'SpO2',
                           value: '98%',
-                          unit: 'सामान्य',
+                          unit: isHindi ? 'सामान्य' : 'Normal',
                           color: AppColors.primary,
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         _VitalPill(
-                          label: 'ताप / Temp',
+                          label: isHindi ? 'तापमान' : 'Temp',
                           value: '98.4°',
                           unit: '°F',
                           color: AppColors.primary,
@@ -541,10 +547,12 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            '💡 अभी भरें या बाद में / Enter now or update later',
-                            style: TextStyle(
+                            isHindi
+                                ? '💡 अभी भरें अथवा बाद में अपडेट करें'
+                                : '💡 Enter now or update anytime',
+                            style: const TextStyle(
                               fontFamily: 'NotoSans',
                               fontSize: 11,
                               fontStyle: FontStyle.italic,
@@ -555,9 +563,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                         ElevatedButton.icon(
                           onPressed: () => context.push(Routes.vitals),
                           icon: const Icon(Icons.edit_outlined, size: 14),
-                          label: const Text(
-                            'दर्ज करें / Update',
-                            style: TextStyle(
+                          label: Text(
+                            isHindi ? 'दर्ज करें' : 'Update',
+                            style: const TextStyle(
                               fontFamily: 'NotoSans',
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
@@ -586,7 +594,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                   children: [
                     Expanded(
                       child: InkWell(
-                        onTap: () => context.push(Routes.doctorList),
+                        onTap: () => context.go(Routes.doctorList),
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
                           padding: const EdgeInsets.all(14),
@@ -595,17 +603,17 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: AppColors.surfaceBorder),
                           ),
-                          child: const Row(
+                          child: Row(
                             children: [
-                              Icon(Icons.medical_services_outlined, color: AppColors.primary, size: 24),
-                              SizedBox(width: 10),
+                              const Icon(Icons.medical_services_outlined, color: AppColors.primary, size: 24),
+                              const SizedBox(width: 10),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'डॉक्टर खोजें',
-                                      style: TextStyle(
+                                      isHindi ? 'डॉक्टर खोजें' : 'Find Doctors',
+                                      style: const TextStyle(
                                         fontFamily: 'NotoSans',
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,
@@ -613,8 +621,8 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                                       ),
                                     ),
                                     Text(
-                                      'Find Verified Doctors',
-                                      style: TextStyle(
+                                      isHindi ? 'सत्यापित शासकीय डॉक्टर' : 'Verified MP Govt Doctors',
+                                      style: const TextStyle(
                                         fontFamily: 'NotoSans',
                                         fontSize: 11,
                                         color: AppColors.onSurfaceVariant,
@@ -631,7 +639,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                     const SizedBox(width: 10),
                     Expanded(
                       child: InkWell(
-                        onTap: () => context.push(Routes.history),
+                        onTap: () => context.go(Routes.history),
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
                           padding: const EdgeInsets.all(14),
@@ -640,17 +648,17 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: AppColors.surfaceBorder),
                           ),
-                          child: const Row(
+                          child: Row(
                             children: [
-                              Icon(Icons.description_outlined, color: AppColors.secondary, size: 24),
-                              SizedBox(width: 10),
+                              const Icon(Icons.description_outlined, color: AppColors.secondary, size: 24),
+                              const SizedBox(width: 10),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'इतिहास',
-                                      style: TextStyle(
+                                      isHindi ? 'परामर्श इतिहास' : 'Medical Records',
+                                      style: const TextStyle(
                                         fontFamily: 'NotoSans',
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,
@@ -658,8 +666,8 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                                       ),
                                     ),
                                     Text(
-                                      'Consultation Records',
-                                      style: TextStyle(
+                                      isHindi ? 'पिछले परामर्श एवं रिपोर्ट' : 'Past consults & triage',
+                                      style: const TextStyle(
                                         fontFamily: 'NotoSans',
                                         fontSize: 11,
                                         color: AppColors.onSurfaceVariant,
@@ -713,168 +721,17 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
       bottomNavigationBar: AppBottomNav(
         currentIndex: 0,
         onTap: (i) {
-          if (i == 1) context.push(Routes.symptomVoice);
-          if (i == 2) context.push(Routes.doctorList);
-          if (i == 3) context.push(Routes.history);
+          if (i == 0) {}
+          if (i == 1) context.go(Routes.symptomVoice);
+          if (i == 2) context.go(Routes.doctorList);
+          if (i == 3) context.go(Routes.history);
         },
       ),
     );
   }
 
   void _showProfileSheet(BuildContext context, WidgetRef ref, AuthState auth) {
-    final displayName = (auth.name != null && auth.name!.isNotEmpty)
-        ? auth.name!
-        : 'नागरिक / Citizen';
-    final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
-    final phoneDisplay = (auth.phone != null && auth.phone!.isNotEmpty)
-        ? auth.phone!
-        : (auth.userId != null && auth.userId!.isNotEmpty
-            ? 'ID: ${auth.userId}'
-            : 'सत्यापित नागरिक (Citizen)');
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: AppColors.primary,
-                  radius: 26,
-                  child: Text(
-                    initial,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 20,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              displayName,
-                              style: const TextStyle(
-                                fontFamily: 'NotoSans',
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.onSurface,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryLight,
-                              borderRadius: BorderRadius.circular(9999),
-                            ),
-                            child: const Text(
-                              'सत्यापित',
-                              style: TextStyle(
-                                fontFamily: 'NotoSans',
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primaryDark,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        phoneDisplay,
-                        style: const TextStyle(
-                          fontFamily: 'NotoSans',
-                          fontSize: 13,
-                          color: AppColors.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            // Quick Links
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    leading: const Icon(Icons.medical_services_outlined, color: AppColors.primary),
-                    title: const Text('डॉक्टर खोजें / Find Doctors',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                    trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-                    onTap: () {
-                      Navigator.of(ctx).pop();
-                      context.push(Routes.doctorList);
-                    },
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    leading: const Icon(Icons.history_rounded, color: AppColors.secondary),
-                    title: const Text('परामर्श इतिहास / History',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                    trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-                    onTap: () {
-                      Navigator.of(ctx).pop();
-                      context.push(Routes.history);
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                ref.read(authProvider.notifier).logout();
-              },
-              icon: const Icon(Icons.logout_rounded, color: AppColors.emergencyRed),
-              label: const Text(
-                'लॉग आउट / Log Out',
-                style: TextStyle(
-                  color: AppColors.emergencyRed,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 48),
-                side: const BorderSide(color: Color(0xFFFCA5A5)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    showPatientProfileSheet(context, ref);
   }
 }
 

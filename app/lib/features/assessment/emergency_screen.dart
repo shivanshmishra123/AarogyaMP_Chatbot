@@ -114,7 +114,7 @@ class _EmergencyScreenState extends State<EmergencyScreen>
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
             child: Text(
-              _activeLang == 'hi' ? 'यहीं रहें / Stay' : 'Stay Here',
+              _activeLang == 'hi' ? 'यहीं रहें' : 'Stay Here',
               style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
             ),
           ),
@@ -125,7 +125,7 @@ class _EmergencyScreenState extends State<EmergencyScreen>
               foregroundColor: Colors.white,
             ),
             child: Text(
-              _activeLang == 'hi' ? 'बाहर जाएं / Leave' : 'Leave Screen',
+              _activeLang == 'hi' ? 'बाहर जाएं' : 'Leave Screen',
             ),
           ),
         ],
@@ -568,7 +568,7 @@ class _EmergencyScreenState extends State<EmergencyScreen>
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          _activeLang == 'hi' ? '108 डायल करें / Call 108' : 'Call 108 Ambulance',
+                          _activeLang == 'hi' ? '108 डायल करें' : 'Call 108 Ambulance',
                           style: const TextStyle(
                             fontFamily: 'NotoSans',
                             fontSize: 20,
@@ -577,7 +577,7 @@ class _EmergencyScreenState extends State<EmergencyScreen>
                           ),
                         ),
                         Text(
-                          'एम्बुलेंस सहायता (MP Ambulance Dispatch)',
+                          _activeLang == 'hi' ? 'एम्बुलेंस सहायता (मध्य प्रदेश)' : 'MP Ambulance Dispatch',
                           style: TextStyle(
                             fontFamily: 'NotoSans',
                             fontSize: 12,
@@ -620,23 +620,25 @@ class _EmergencyScreenState extends State<EmergencyScreen>
                     child: const Icon(Icons.support_agent_rounded, color: Color(0xFF006F67), size: 26),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '104 स्वास्थ्य हेल्पलाइन / Health Helpline 104',
-                          style: TextStyle(
+                          _activeLang == 'hi' ? '104 स्वास्थ्य हेल्पलाइन' : 'Health Helpline 104',
+                          style: const TextStyle(
                             fontFamily: 'NotoSans',
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: Color(0xFF0A1F1E),
                           ),
                         ),
-                        SizedBox(height: 2),
+                        const SizedBox(height: 2),
                         Text(
-                          'म.प्र. शासन टेली-परामर्श • Medical Guidance',
-                          style: TextStyle(
+                          _activeLang == 'hi'
+                              ? 'म.प्र. शासन टेली-परामर्श'
+                              : 'MP Govt Tele-Consultation Guidance',
+                          style: const TextStyle(
                             fontFamily: 'NotoSans',
                             fontSize: 12,
                             color: Color(0xFF3E4943),
@@ -868,13 +870,17 @@ class _EmergencyScreenState extends State<EmergencyScreen>
             ...triggers.map((t) => _buildTriggerItem(t.ruleId, t.description))
           else ...[
             _buildTriggerItem(
-              'सांस लेने में कठिनाई / Shortness of Breath',
-              'Severe respiratory distress reported during evaluation',
+              _activeLang == 'hi' ? 'सांस लेने में कठिनाई' : 'Shortness of Breath',
+              _activeLang == 'hi'
+                  ? 'मूल्यांकन के दौरान गंभीर सांस की समस्या रिपोर्ट की गई'
+                  : 'Severe respiratory distress reported during evaluation',
             ),
             const SizedBox(height: 8),
             _buildTriggerItem(
-              'रक्तचाप में अत्यधिक वृद्धि / Critical Blood Pressure',
-              'Critical vital indicator flag (severe systolic elevation)',
+              _activeLang == 'hi' ? 'रक्तचाप में अत्यधिक वृद्धि' : 'Critical Blood Pressure',
+              _activeLang == 'hi'
+                  ? 'अत्यधिक उच्च सिस्टोलिक रक्तचाप'
+                  : 'Critical vital indicator flag (severe systolic elevation)',
             ),
           ],
           const SizedBox(height: 10),
@@ -960,13 +966,13 @@ class _EmergencyScreenState extends State<EmergencyScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.health_and_safety_rounded, color: AppColors.tertiary, size: 20),
-              SizedBox(width: 8),
+              const Icon(Icons.health_and_safety_rounded, color: AppColors.tertiary, size: 20),
+              const SizedBox(width: 8),
               Text(
-                'जब तक सहायता न पहुंचे / While Waiting for Ambulance',
-                style: TextStyle(
+                _activeLang == 'hi' ? 'जब तक सहायता न पहुंचे' : 'While Waiting for Ambulance',
+                style: const TextStyle(
                   fontFamily: 'NotoSans',
                   fontSize: 13,
                   fontWeight: FontWeight.w700,

@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/providers/locale_provider.dart';
 import '../../core/router/app_router.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -87,6 +88,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isHindi = ref.watch(isHindiProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -98,51 +101,77 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 24),
-                // Branding
+                // Branding + Language Pill
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.favorite_rounded,
-                          color: Colors.white, size: 28),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
                       children: [
-                        Text(
-                          'AarogyaMP',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.favorite_rounded,
+                              color: Colors.white, size: 28),
                         ),
-                        Text(
-                          'Your Health, Our Priority',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.onSurfaceVariant,
-                              ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'AarogyaMP',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                            Text(
+                              isHindi ? 'आपका स्वास्थ्य, हमारी प्राथमिकता' : 'Your Health, Our Priority',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppColors.onSurfaceVariant,
+                                  ),
+                            ),
+                          ],
                         ),
                       ],
+                    ),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () => ref.read(isHindiProvider.notifier).toggle(),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainer,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.surfaceBorder),
+                        ),
+                        child: Text(
+                          isHindi ? 'हिं' : 'EN',
+                          style: const TextStyle(
+                            fontFamily: 'NotoSans',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 40),
                 Text(
-                  'Welcome back',
+                  isHindi ? 'लॉगिन करें' : 'Welcome back',
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Sign in to continue',
+                  isHindi ? 'जारी रखने के लिए विवरण दर्ज करें' : 'Sign in to continue',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: AppColors.onSurfaceVariant,
                       ),
@@ -271,21 +300,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 16),
 
                 // Quick Navigation Divider & Action Buttons
-                const Row(
+                Row(
                   children: [
-                    Expanded(child: Divider()),
+                    const Expanded(child: Divider()),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Text(
-                        'या / OR',
-                        style: TextStyle(
+                        isHindi ? 'या' : 'OR',
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.onSurfaceVariant,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                    Expanded(child: Divider()),
+                    const Expanded(child: Divider()),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -294,7 +323,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 OutlinedButton.icon(
                   onPressed: () => context.push(Routes.doctorList),
                   icon: const Icon(Icons.medical_services_outlined, color: AppColors.primary),
-                  label: const Text('सत्यापित डॉक्टर खोजें / Browse Doctors'),
+                  label: Text(isHindi ? 'सत्यापित डॉक्टर खोजें' : 'Browse Verified Doctors'),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 48),
                     side: const BorderSide(color: AppColors.primary, width: 1.5),
@@ -318,9 +347,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       context.go(Routes.patientHome);
                     },
                     icon: const Icon(Icons.arrow_forward_rounded, size: 16, color: AppColors.secondary),
-                    label: const Text(
-                      'अतिथि के रूप में आगे बढ़ें / Continue as Guest',
-                      style: TextStyle(
+                    label: Text(
+                      isHindi ? 'अतिथि के रूप में आगे बढ़ें' : 'Continue as Guest',
+                      style: const TextStyle(
                         fontFamily: 'NotoSans',
                         fontSize: 13,
                         fontWeight: FontWeight.w600,

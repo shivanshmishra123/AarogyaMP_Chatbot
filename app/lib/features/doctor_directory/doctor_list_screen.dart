@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/models/doctor_model.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/providers/locale_provider.dart';
 import '../../core/services/doctor_service.dart';
 import '../../core/services/mock_service.dart';
 import '../../core/services/consultation_service.dart';
@@ -169,6 +170,8 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isHindi = ref.watch(isHindiProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: StitchHeader(
@@ -186,7 +189,7 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── 1. Top Geo-Location & Area Card (Stitch Reference) ───────────
+            // ── 1. Top Geo-Location & Area Card ──────────────────────────────
             Container(
               margin: const EdgeInsets.fromLTRB(16, 12, 16, 6),
               padding: const EdgeInsets.all(12),
@@ -212,9 +215,9 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'वर्तमान स्थान / Current Area',
-                              style: TextStyle(
+                            Text(
+                              isHindi ? 'वर्तमान स्थान' : 'Current Area',
+                              style: const TextStyle(
                                 fontFamily: 'NotoSans',
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
@@ -224,9 +227,9 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                             Text(
                               _lat != null && _lng != null
                                   ? (_lat == 23.2599 && _lng == 77.4126
-                                      ? 'अरेरा कॉलोनी, भोपाल (23.26°N, 77.41°E)'
-                                      : 'GPS: ${_lat!.toStringAsFixed(2)}°N, ${_lng!.toStringAsFixed(2)}°E (स्थान सक्रिय)')
-                                  : 'स्थान अनिर्धारित (Location Not Set)',
+                                      ? (isHindi ? 'अरेरा कॉलोनी, भोपाल' : 'Arera Colony, Bhopal')
+                                      : 'GPS: ${_lat!.toStringAsFixed(2)}°N, ${_lng!.toStringAsFixed(2)}°E')
+                                  : (isHindi ? 'स्थान अनिर्धारित' : 'Location Not Set'),
                               style: const TextStyle(
                                 fontFamily: 'NotoSans',
                                 fontSize: 12,
@@ -246,7 +249,7 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                         children: [
                           IconButton(
                             onPressed: _setBhopalDemoLocation,
-                            tooltip: 'भोपाल डेमो स्थान / Bhopal Demo',
+                            tooltip: isHindi ? 'भोपाल डेमो स्थान' : 'Bhopal Demo',
                             icon: const Icon(Icons.location_city_rounded, size: 18, color: AppColors.secondary),
                             visualDensity: VisualDensity.compact,
                           ),
@@ -254,18 +257,20 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                             onPressed: () {
                               _initLocation();
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('GPS स्थान खोजा जा रहा है... (Detecting GPS)'),
-                                  duration: Duration(seconds: 1),
+                                SnackBar(
+                                  content: Text(isHindi ? 'GPS स्थान खोजा जा रहा है...' : 'Detecting GPS location...'),
+                                  duration: const Duration(seconds: 1),
                                 ),
                               );
                             },
                             icon: const Icon(Icons.my_location_rounded, size: 13),
-                            label: const Text('जीपीएस / GPS'),
+                            label: Text(isHindi ? 'जीपीएस' : 'GPS'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
                               elevation: 0,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               textStyle: const TextStyle(
                                 fontFamily: 'NotoSans',
@@ -295,8 +300,8 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                         Expanded(
                           child: Text(
                             _lat != null && _lng != null
-                                ? 'दूरी गणना सक्रिय (Distance calculation active)'
-                                : 'जीपीएस चालू करें अथवा भोपाल डेमो चुनें दूरी देखने के लिए',
+                                ? (isHindi ? 'दूरी गणना सक्रिय' : 'Distance calculation active')
+                                : (isHindi ? 'दूरी देखने के लिए जीपीएस अथवा भोपाल डेमो चुनें' : 'Enable GPS or select Bhopal demo to see distance'),
                             style: const TextStyle(
                               fontFamily: 'NotoSans',
                               fontSize: 11,
@@ -361,13 +366,15 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'विशेषज्ञता / Specialty',
-                          style: TextStyle(
-                            fontFamily: 'NotoSans',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.onSurfaceVariant,
+                        Flexible(
+                          child: Text(
+                            isHindi ? 'विशेषज्ञता' : 'Specialty',
+                            style: const TextStyle(
+                              fontFamily: 'NotoSans',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.onSurfaceVariant,
+                            ),
                           ),
                         ),
                         Container(
@@ -376,9 +383,9 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                             color: AppColors.primaryLight,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text(
-                            '100% म.प्र. शासन सत्यापित',
-                            style: TextStyle(
+                          child: Text(
+                            isHindi ? '100% सत्यापित' : '100% Verified',
+                            style: const TextStyle(
                               fontFamily: 'NotoSans',
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
@@ -403,10 +410,8 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                         final selected = _selectedSpecialty == s ||
                             (s == 'All' && _selectedSpecialty == null);
                         final label = s == 'All'
-                            ? 'सभी / All'
-                            : (s == 'General Physician'
-                                ? 'General Physician (एमबीबीएस)'
-                                : s);
+                            ? (isHindi ? 'सभी' : 'All')
+                            : s;
                         return FilterChip(
                           label: Text(label),
                           selected: selected,
@@ -445,9 +450,9 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                       children: [
                         const Icon(Icons.near_me_rounded, size: 13, color: AppColors.secondary),
                         const SizedBox(width: 4),
-                        const Text(
-                          'दूरी दायरा / Distance Filter:',
-                          style: TextStyle(
+                        Text(
+                          isHindi ? 'दूरी दायरा:' : 'Distance Filter:',
+                          style: const TextStyle(
                             fontFamily: 'NotoSans',
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -463,9 +468,9 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                                 _loadDoctors();
                               });
                             },
-                            child: const Text(
-                              'रीसेट / Clear',
-                              style: TextStyle(
+                            child: Text(
+                              isHindi ? 'रीसेट' : 'Clear',
+                              style: const TextStyle(
                                 fontFamily: 'NotoSans',
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
@@ -488,7 +493,9 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                       itemBuilder: (context, i) {
                         final r = _radiusOptions[i];
                         final selected = _selectedRadiusKm == r;
-                        final label = r == null ? 'सभी दूरी / All' : '< ${r.toInt()} km';
+                        final label = r == null
+                            ? (isHindi ? 'सभी' : 'All')
+                            : '< ${r.toInt()} km';
                         return FilterChip(
                           label: Text(label),
                           selected: selected,
@@ -561,7 +568,7 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                             OutlinedButton.icon(
                               onPressed: () => setState(() => _loadDoctors()),
                               icon: const Icon(Icons.refresh_rounded),
-                              label: const Text('पुनः प्रयास / Retry'),
+                              label: Text(isHindi ? 'पुनः प्रयास करें' : 'Retry'),
                             ),
                           ],
                         ),
@@ -581,10 +588,16 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                             const SizedBox(height: 12),
                             Text(
                               _selectedRadiusKm != null
-                                  ? 'चयनित दायरे (< ${_selectedRadiusKm!.toInt()} km) में कोई डॉक्टर नहीं मिला।\n(No verified doctors within ${_selectedRadiusKm!.toInt()} km).'
+                                  ? (isHindi
+                                      ? 'चयनित दायरे (< ${_selectedRadiusKm!.toInt()} km) में कोई डॉक्टर नहीं मिला।'
+                                      : 'No verified doctors found within ${_selectedRadiusKm!.toInt()} km.')
                                   : (_selectedSpecialty != null
-                                      ? 'विशेषज्ञता "$_selectedSpecialty" के लिए कोई डॉक्टर उपलब्ध नहीं है।\n(No doctors found for this specialty).'
-                                      : 'कोई सत्यापित डॉक्टर उपलब्ध नहीं है\n(No verified doctors found).'),
+                                      ? (isHindi
+                                          ? 'विशेषज्ञता "$_selectedSpecialty" के लिए कोई डॉक्टर उपलब्ध नहीं है।'
+                                          : 'No doctors found for "$_selectedSpecialty".')
+                                      : (isHindi
+                                          ? 'कोई सत्यापित डॉक्टर उपलब्ध नहीं है।'
+                                          : 'No verified doctors found.')),
                               style: Theme.of(context)
                                   .textTheme
                                   .bodyMedium
@@ -604,7 +617,7 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                                   });
                                 },
                                 icon: const Icon(Icons.all_inclusive_rounded, size: 16),
-                                label: const Text('सभी डॉक्टर देखें / Show All Doctors'),
+                                label: Text(isHindi ? 'सभी डॉक्टर देखें' : 'Show All Doctors'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
@@ -641,29 +654,13 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
           ],
         ),
       ),
-      // Floating Map View Button (Stitch Reference)
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push(Routes.doctorMap),
-        backgroundColor: AppColors.onSurface,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        icon: const Icon(Icons.map_outlined, color: AppColors.primaryLight),
-        label: const Text(
-          'नक्शा देखें / Map View',
-          style: TextStyle(
-            fontFamily: 'NotoSans',
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
       bottomNavigationBar: AppBottomNav(
         currentIndex: 2,
         onTap: (i) {
           if (i == 0) context.go(Routes.patientHome);
-          if (i == 1) context.push(Routes.symptomVoice);
+          if (i == 1) context.go(Routes.symptomVoice);
           if (i == 2) {} // already on doctorList
-          if (i == 3) context.push(Routes.history);
+          if (i == 3) context.go(Routes.history);
         },
       ),
     );
@@ -673,16 +670,17 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
 // ─────────────────────────────────────────────────────────────────────────────
 // _DoctorCard — Stitch Screen 9 Pixel-Perfect Implementation
 // ─────────────────────────────────────────────────────────────────────────────
-class _DoctorCard extends StatelessWidget {
+class _DoctorCard extends ConsumerWidget {
   final Doctor doctor;
   final VoidCallback onTap;
 
   const _DoctorCard({required this.doctor, required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (!doctor.isVerified) return const SizedBox.shrink();
 
+    final isHindi = ref.watch(isHindiProvider);
     final isAyush = doctor.specialty.toLowerCase().contains('ayur') ||
         doctor.specialty.toLowerCase().contains('ayush');
     final accentColor = isAyush ? AppColors.tertiary : AppColors.primary;
@@ -700,87 +698,63 @@ class _DoctorCard extends StatelessWidget {
           ),
         ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Left Accent Border Bar (Stitch Spec: 5px solid clinical color)
-            Container(width: 5, color: accentColor),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header: Avatar + Name + MP-Govt Verified Badge
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: accentColor.withValues(alpha: 0.12),
+                child: Text(
+                  doctor.name.replaceAll('Dr. ', '').substring(0, 1),
+                  style: TextStyle(
+                    fontFamily: 'NotoSans',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: accentColor,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header: Avatar + Name + MP-Govt Verified Badge
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircleAvatar(
-                          radius: 24,
-                          backgroundColor: accentColor.withValues(alpha: 0.12),
+                        Expanded(
                           child: Text(
-                            doctor.name.replaceAll('Dr. ', '').substring(0, 1),
-                            style: TextStyle(
+                            doctor.name,
+                            style: const TextStyle(
                               fontFamily: 'NotoSans',
-                              fontSize: 18,
+                              fontSize: 15,
                               fontWeight: FontWeight.w700,
-                              color: accentColor,
+                              color: AppColors.onSurface,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight,
+                            borderRadius: BorderRadius.circular(9999),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      doctor.name,
-                                      style: const TextStyle(
-                                        fontFamily: 'NotoSans',
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.onSurface,
-                                      ),
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primaryLight,
-                                      borderRadius: BorderRadius.circular(9999),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.verified, size: 12, color: AppColors.primary),
-                                        SizedBox(width: 3),
-                                        Text(
-                                          'सत्यापित',
-                                          style: TextStyle(
-                                            fontFamily: 'NotoSans',
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w700,
-                                            color: AppColors.primaryDark,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
+                              const Icon(Icons.verified, size: 12, color: AppColors.primary),
+                              const SizedBox(width: 3),
                               Text(
-                                '${doctor.specialty} ${doctor.qualification != null ? "(${doctor.qualification})" : ""}',
-                                style: TextStyle(
+                                isHindi ? 'सत्यापित' : 'Verified',
+                                style: const TextStyle(
                                   fontFamily: 'NotoSans',
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: accentColor,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primaryDark,
                                 ),
                               ),
                             ],
@@ -788,136 +762,182 @@ class _DoctorCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-
-                    // Facility & Distance Box
-                    if (doctor.hospital != null || doctor.distanceKm != null)
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.apartment_rounded, size: 15, color: AppColors.primary),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                doctor.hospital ?? 'शासकीय स्वास्थ्य केंद्र',
-                                style: const TextStyle(
-                                  fontFamily: 'NotoSans',
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.onSurface,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (doctor.distanceKm != null) ...[
-                              const SizedBox(width: 6),
-                              Text(
-                                '${doctor.distanceKm!.toStringAsFixed(1)} km दूर',
-                                style: const TextStyle(
-                                  fontFamily: 'NotoSans',
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.secondary,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${doctor.specialty} ${doctor.qualification != null ? "(${doctor.qualification})" : ""}',
+                      style: TextStyle(
+                        fontFamily: 'NotoSans',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: accentColor,
                       ),
-                    const SizedBox(height: 8),
-
-                    // OPD Status Line
-                    const Row(
-                      children: [
-                        Icon(Icons.circle, size: 8, color: AppColors.primary),
-                        SizedBox(width: 6),
-                        Text(
-                          'आज उपलब्ध (Open Today)',
-                          style: TextStyle(
-                            fontFamily: 'NotoSans',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        Spacer(),
-                        Text(
-                          'OPD: 10:00 AM - 2:00 PM',
-                          style: TextStyle(
-                            fontFamily: 'NotoSans',
-                            fontSize: 11,
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Dual High-Affordance Action Buttons (Stitch Spec: 44px min height)
-                    Row(
-                      children: [
-                        if (doctor.phone.isNotEmpty) ...[
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () async {
-                                final uri = Uri.parse('tel:${doctor.phone}');
-                                // ignore: deprecated_member_use
-                                await launchUrl(uri);
-                              },
-                              icon: const Icon(Icons.call, size: 15),
-                              label: const Text('कॉल करें / Call'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: accentColor,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                textStyle: const TextStyle(
-                                  fontFamily: 'NotoSans',
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: onTap,
-                            icon: const Icon(Icons.assignment_ind_outlined, size: 15),
-                            label: const Text('प्रोफ़ाइल / Profile'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.onSurface,
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              side: const BorderSide(color: AppColors.surfaceBorder),
-                              textStyle: const TextStyle(
-                                fontFamily: 'NotoSans',
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Facility & Distance Box
+          if (doctor.hospital != null || doctor.distanceKm != null)
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.apartment_rounded, size: 15, color: AppColors.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      doctor.hospital ?? (isHindi ? 'शासकीय स्वास्थ्य केंद्र' : 'Government Health Center'),
+                      style: const TextStyle(
+                        fontFamily: 'NotoSans',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.onSurface,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (doctor.distanceKm != null) ...[
+                    const SizedBox(width: 6),
+                    Text(
+                      isHindi
+                          ? '${doctor.distanceKm!.toStringAsFixed(1)} km दूर'
+                          : '${doctor.distanceKm!.toStringAsFixed(1)} km away',
+                      style: const TextStyle(
+                        fontFamily: 'NotoSans',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.secondary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ],
-        ),
+          const SizedBox(height: 8),
+
+          // OPD Status Line
+          Row(
+            children: [
+              const Icon(Icons.circle, size: 8, color: AppColors.primary),
+              const SizedBox(width: 6),
+              Text(
+                isHindi ? 'आज उपलब्ध' : 'Open Today',
+                style: const TextStyle(
+                  fontFamily: 'NotoSans',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+              const Spacer(),
+              const Text(
+                'OPD: 10:00 AM - 2:00 PM',
+                style: TextStyle(
+                  fontFamily: 'NotoSans',
+                  fontSize: 11,
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Dual High-Affordance Action Buttons (Stitch Spec: 44px min height)
+          Row(
+            children: [
+              if (doctor.phone.isNotEmpty) ...[
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      final uri = Uri.parse('tel:${doctor.phone}');
+                      // ignore: deprecated_member_use
+                      await launchUrl(uri);
+                    },
+                    icon: const Icon(Icons.call, size: 15),
+                    label: Text(isHindi ? 'कॉल करें' : 'Call'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: accentColor,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      textStyle: const TextStyle(
+                        fontFamily: 'NotoSans',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onTap,
+                  icon: const Icon(Icons.assignment_ind_outlined, size: 14),
+                  label: Text(isHindi ? 'प्रोफ़ाइल' : 'Profile'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.onSurface,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    side: const BorderSide(color: AppColors.surfaceBorder),
+                    textStyle: const TextStyle(
+                      fontFamily: 'NotoSans',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    final consultId = 'mock-consult-${doctor.id}';
+                    ref.read(authProvider.notifier).saveDoctorConsultation(
+                          doctorId: doctor.id,
+                          consultationId: consultId,
+                          doctorName: doctor.name,
+                          specialty: doctor.specialty,
+                        );
+                    context.push(
+                      Routes.chat.replaceAll(':consultationId', consultId),
+                      extra: {'doctorName': doctor.name, 'doctorId': doctor.id},
+                    );
+                  },
+                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 14),
+                  label: Text(isHindi ? 'चैट' : 'Chat'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    textStyle: const TextStyle(
+                      fontFamily: 'NotoSans',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -957,12 +977,15 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
   /// In mock mode: navigate with mock ID (unchanged from M1).
   Future<void> _startChat(BuildContext context, Doctor doc) async {
     if (_useMocks) {
-      ref.read(authProvider.notifier).setLastConsultation(
-            consultationId: 'mock-consult-${doc.id}',
+      final consultId = 'mock-consult-${doc.id}';
+      ref.read(authProvider.notifier).saveDoctorConsultation(
+            doctorId: doc.id,
+            consultationId: consultId,
             doctorName: doc.name,
+            specialty: doc.specialty,
           );
       context.push(
-        Routes.chat.replaceAll(':consultationId', 'mock-consult-${doc.id}'),
+        Routes.chat.replaceAll(':consultationId', consultId),
         extra: {'doctorName': doc.name, 'doctorId': doc.id},
       );
       return;

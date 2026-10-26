@@ -25,6 +25,7 @@ class AuthState {
   final String? lastSymptomReportId; // latest assessment / symptom report id
   final String? lastConsultationId;  // latest active consultation id
   final String? lastConsultationDoctorName;
+  final List<Map<String, dynamic>> consultations;
 
   const AuthState({
     this.isAuthenticated = false,
@@ -37,6 +38,7 @@ class AuthState {
     this.lastSymptomReportId,
     this.lastConsultationId,
     this.lastConsultationDoctorName,
+    this.consultations = const [],
   });
 
   AuthState copyWith({
@@ -50,6 +52,7 @@ class AuthState {
     String? lastSymptomReportId,
     String? lastConsultationId,
     String? lastConsultationDoctorName,
+    List<Map<String, dynamic>>? consultations,
   }) {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
@@ -62,6 +65,7 @@ class AuthState {
       lastSymptomReportId: lastSymptomReportId ?? this.lastSymptomReportId,
       lastConsultationId: lastConsultationId ?? this.lastConsultationId,
       lastConsultationDoctorName: lastConsultationDoctorName ?? this.lastConsultationDoctorName,
+      consultations: consultations ?? this.consultations,
     );
   }
 }
@@ -73,8 +77,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
   static const _useMocks = bool.fromEnvironment('USE_MOCKS', defaultValue: true);
 
   AuthNotifier(this._prefs) : super(const AuthState()) {
-    if (!_useMocks && _prefs != null) {
-      _tryRestoreSession();
+    if (_prefs != null) {
+      if (!_useMocks) {
+        _tryRestoreSession();
+      }
+      _loadStoredConsultations();
+    }
+  }
+
+  void _loadStoredConsultations() {
+    _initService();
+    final map = _authService?.getDoctorConsultations() ?? {};
+    if (map.isNotEmpty) {
+      final list = <Map<String, dynamic>>[];
+      for (final v in map.values) {
+        if (v is Map) list.add(Map<String, dynamic>.from(v));
+      }
+      list.sort((a, b) {
+        final aTime = DateTime.tryParse(a['updatedAt']?.toString() ?? '') ?? DateTime(2000);
+        final bTime = DateTime.tryParse(b['updatedAt']?.toString() ?? '') ?? DateTime(2000);
+        return bTime.compareTo(aTime);
+      });
+      state = state.copyWith(consultations: list);
     }
   }
 
@@ -197,7 +221,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       lastConsultationId: consultationId,
       lastConsultationDoctorName: doctorName,
     );
-    if (!_useMocks && _prefs != null) {
+    if (_prefs != null) {
       _initService();
       _authService?.saveLastConsultation(consultationId, doctorName);
     }
@@ -205,9 +229,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Check if an active consultation already exists with this doctor.
   String? getConsultationIdForDoctor(String doctorId) {
-    if (_useMocks) return null;
-    _initService();
-    return _authService?.getConsultationIdForDoctor(doctorId);
+    if (_prefs != null) {
+      _initService();
+      final id = _authService?.getConsultationIdForDoctor(doctorId);
+      if (id != null && id.isNotEmpty) return id;
+    }
+    return _useMocks ? 'mock-consult-$doctorId' : null;
   }
 
   /// Save consultation for a specific doctor so future chats reuse the existing thread.
@@ -217,11 +244,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String doctorName,
     String? specialty,
   }) {
+    final entry = {
+      'consultationId': consultationId,
+      'doctorName': doctorName,
+      'doctorId': doctorId,
+      'specialty': specialty,
+      'updatedAt': DateTime.now().toIso8601String(),
+    };
+
+    final currentList = List<Map<String, dynamic>>.from(state.consultations);
+    currentList.removeWhere(
+      (c) => c['doctorId'] == doctorId || c['consultationId'] == consultationId,
+    );
+    currentList.insert(0, entry);
+
     state = state.copyWith(
       lastConsultationId: consultationId,
       lastConsultationDoctorName: doctorName,
+      consultations: currentList,
     );
-    if (!_useMocks && _prefs != null) {
+
+    if (_prefs != null) {
       _initService();
       _authService?.saveDoctorConsultation(
         doctorId: doctorId,
@@ -234,35 +277,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// List all past consultations sorted by most recent.
   List<Map<String, dynamic>> getConsultationHistory() {
-    if (_useMocks) {
-      return [
-        {
-          'consultationId': 'mock-consult-001',
-          'doctorName': 'Dr. Sunita Verma',
-          'doctorId': 'doc-001',
-          'specialty': 'General Medicine',
-          'updatedAt': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
-        }
-      ];
+    if (state.consultations.isNotEmpty) {
+      return state.consultations;
     }
-    _initService();
-    final map = _authService?.getDoctorConsultations() ?? {};
-    final list = <Map<String, dynamic>>[];
-    for (final v in map.values) {
-      if (v is Map) {
-        list.add(Map<String, dynamic>.from(v));
+    if (_prefs != null) {
+      _initService();
+      final map = _authService?.getDoctorConsultations() ?? {};
+      if (map.isNotEmpty) {
+        final list = <Map<String, dynamic>>[];
+        for (final v in map.values) {
+          if (v is Map) {
+            list.add(Map<String, dynamic>.from(v));
+          }
+        }
+        list.sort((a, b) {
+          final aTime = DateTime.tryParse(a['updatedAt']?.toString() ?? '') ?? DateTime(2000);
+          final bTime = DateTime.tryParse(b['updatedAt']?.toString() ?? '') ?? DateTime(2000);
+          return bTime.compareTo(aTime);
+        });
+        return list;
       }
     }
-    list.sort((a, b) {
-      final aTime = DateTime.tryParse(a['updatedAt']?.toString() ?? '') ?? DateTime(2000);
-      final bTime = DateTime.tryParse(b['updatedAt']?.toString() ?? '') ?? DateTime(2000);
-      return bTime.compareTo(aTime);
-    });
-    return list;
+    return [];
   }
 
   Future<void> logout() async {
-    if (!_useMocks && _prefs != null) {
+    if (_prefs != null) {
       _initService();
       await _authService!.clearSession();
     }
@@ -271,7 +311,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  const useMocks = bool.fromEnvironment('USE_MOCKS', defaultValue: true);
-  final prefs = useMocks ? null : ref.watch(sharedPreferencesProvider);
+  SharedPreferences? prefs;
+  try {
+    prefs = ref.watch(sharedPreferencesProvider);
+  } catch (_) {}
   return AuthNotifier(prefs);
 });

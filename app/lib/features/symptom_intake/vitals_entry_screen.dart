@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/assessment_service.dart';
+import '../../core/providers/locale_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../widgets/shared_widgets.dart';
 import 'symptom_input_screens.dart' show IntakeStepper;
@@ -151,7 +152,11 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('मूल्यांकन त्रुटि / Error: ${e.toString()}'),
+          content: Text(
+            ref.read(isHindiProvider)
+                ? 'मूल्यांकन त्रुटि: ${e.toString()}'
+                : 'Assessment error: ${e.toString()}',
+          ),
           backgroundColor: AppColors.emergencyRed,
         ),
       );
@@ -162,76 +167,82 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isHindi = ref.watch(isHindiProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFFE7FEFC),
+      appBar: StitchHeader(
+        subtitle: isHindi ? 'माप दर्ज' : 'Vitals Intake',
+        showBack: true,
+        onBackTap: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go(Routes.patientHome);
+          }
+        },
+      ),
       body: SafeArea(
-        child: Column(
-          children: [
-            const StitchHeader(subtitle: 'Ai Intake'),
-            Expanded(
-              child: Form(
-                key: _formKey,
-                child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 4-Stage Progress Stepper
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: IntakeStepper(activeStep: 2),
+                ),
+
+                // Friendly Institutional Header Banner
+                _buildInstitutionalBanner(isHindi),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // 4-Stage Progress Stepper
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: IntakeStepper(activeStep: 2),
-                      ),
+                      // 1. Body Temperature Card
+                      _buildTemperatureCard(isHindi),
+                      const SizedBox(height: 14),
 
-                      // Friendly Institutional Header Banner
-                      _buildInstitutionalBanner(),
+                      // 2. Blood Pressure Card
+                      _buildBloodPressureCard(isHindi),
+                      const SizedBox(height: 14),
 
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // 1. Body Temperature Card
-                            _buildTemperatureCard(),
-                            const SizedBox(height: 14),
+                      // 3. Pulse / Heart Rate Card
+                      _buildPulseCard(isHindi),
+                      const SizedBox(height: 14),
 
-                            // 2. Blood Pressure Card
-                            _buildBloodPressureCard(),
-                            const SizedBox(height: 14),
+                      // 4. Oxygen Saturation (SpO2) Card
+                      _buildSpo2Card(isHindi),
+                      const SizedBox(height: 14),
 
-                            // 3. Pulse / Heart Rate Card
-                            _buildPulseCard(),
-                            const SizedBox(height: 14),
+                      // 5. Respiratory Rate Card
+                      _buildRespiratoryCard(isHindi),
+                      const SizedBox(height: 14),
 
-                            // 4. Oxygen Saturation (SpO2) Card
-                            _buildSpo2Card(),
-                            const SizedBox(height: 14),
+                      // Quick Context Card
+                      _buildClinicalAssuranceCard(isHindi),
+                      const SizedBox(height: 18),
 
-                            // 5. Respiratory Rate Card
-                            _buildRespiratoryCard(),
-                            const SizedBox(height: 14),
-
-                            // Quick Context Card
-                            _buildClinicalAssuranceCard(),
-                            const SizedBox(height: 18),
-
-                            // Bottom Actions Stack
-                            _buildActionButtons(),
-                            const SizedBox(height: 32),
-                          ],
-                        ),
-                      ),
+                      // Bottom Actions Stack
+                      _buildActionButtons(isHindi),
+                      const SizedBox(height: 32),
                     ],
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
   // ── Friendly Institutional Header Banner ──────────────────────────────────
-  Widget _buildInstitutionalBanner() {
+  Widget _buildInstitutionalBanner(bool isHindi) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       padding: const EdgeInsets.all(16),
@@ -256,36 +267,29 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
             child: const Icon(Icons.info_rounded, color: AppColors.primary, size: 20),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'स्वास्थ्य माप / Vitals',
-                  style: TextStyle(
+                  isHindi ? 'स्वास्थ्य माप' : 'Vital Signs',
+                  style: const TextStyle(
                     fontFamily: 'NotoSans',
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF0A1F1E),
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'सभी माप वैकल्पिक हैं। आप इन्हें छोड़ सकते हैं और डॉक्टर को दिखा सकते हैं।',
-                  style: TextStyle(
+                  isHindi
+                      ? 'सभी माप वैकल्पिक हैं। आप इन्हें छोड़ सकते हैं और सीधे आगे बढ़ सकते हैं।'
+                      : 'All vitals are optional. You can enter what you know or skip entirely.',
+                  style: const TextStyle(
                     fontFamily: 'NotoSans',
                     fontSize: 12,
                     color: Color(0xFF3E4943),
                     height: 1.35,
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'All vitals are optional. You can enter now, later, or skip entirely.',
-                  style: TextStyle(
-                    fontFamily: 'NotoSans',
-                    fontSize: 11,
-                    color: Color(0xFF6E7A73),
                   ),
                 ),
               ],
@@ -297,7 +301,7 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
   }
 
   // ── 1. Body Temperature Card ──────────────────────────────────────────────
-  Widget _buildTemperatureCard() {
+  Widget _buildTemperatureCard(bool isHindi) {
     double? val = double.tryParse(_tempController.text);
     bool isElevated = false;
     if (val != null) {
@@ -318,31 +322,18 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.device_thermostat_rounded, color: AppColors.primary, size: 22),
-                  SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'शरीर का तापमान',
-                        style: TextStyle(
-                          fontFamily: 'NotoSans',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF0A1F1E),
-                        ),
-                      ),
-                      Text(
-                        'Body Temperature',
-                        style: TextStyle(
-                          fontFamily: 'NotoSans',
-                          fontSize: 11,
-                          color: Color(0xFF6E7A73),
-                        ),
-                      ),
-                    ],
+                  const Icon(Icons.device_thermostat_rounded, color: AppColors.primary, size: 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    isHindi ? 'शरीर का तापमान' : 'Body Temperature',
+                    style: const TextStyle(
+                      fontFamily: 'NotoSans',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0A1F1E),
+                    ),
                   ),
                 ],
               ),
@@ -384,7 +375,7 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                     textBaseline: TextBaseline.alphabetic,
                     children: [
                       SizedBox(
-                        width: 90,
+                        width: 115,
                         child: TextField(
                           controller: _tempController,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -395,7 +386,14 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                             fontWeight: FontWeight.w800,
                             color: Color(0xFF0A1F1E),
                           ),
-                          decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            filled: false,
+                            contentPadding: EdgeInsets.zero,
+                            isDense: true,
+                          ),
                           onChanged: (_) => setState(() {}),
                         ),
                       ),
@@ -418,8 +416,10 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                     ),
                     child: Text(
                       isElevated
-                          ? 'हल्का बढ़ा हुआ / Slightly elevated'
-                          : 'सामान्य / Normal (${_tempUnit == 'F' ? '97.0 - 99.0 °F' : '36.1 - 37.2 °C'})',
+                          ? (isHindi ? 'हल्का बढ़ा हुआ' : 'Slightly elevated')
+                          : (isHindi
+                              ? 'सामान्य (${_tempUnit == 'F' ? '97.0 - 99.0 °F' : '36.1 - 37.2 °C'})'
+                              : 'Normal (${_tempUnit == 'F' ? '97.0 - 99.0 °F' : '36.1 - 37.2 °C'})'),
                       style: TextStyle(
                         fontFamily: 'NotoSans',
                         fontSize: 10,
@@ -446,9 +446,9 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: () => setState(() => _tempController.clear()),
-              child: const Text(
-                'मुझे नहीं पता / I don\'t know',
-                style: TextStyle(fontFamily: 'NotoSans', fontSize: 11, color: AppColors.secondary),
+              child: Text(
+                isHindi ? 'मुझे नहीं पता' : "I don't know",
+                style: const TextStyle(fontFamily: 'NotoSans', fontSize: 11, color: AppColors.secondary),
               ),
             ),
           ),
@@ -458,7 +458,7 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
   }
 
   // ── 2. Blood Pressure Card ────────────────────────────────────────────────
-  Widget _buildBloodPressureCard() {
+  Widget _buildBloodPressureCard(bool isHindi) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -472,31 +472,18 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.monitor_heart_rounded, color: AppColors.primary, size: 22),
-                  SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'रक्तचाप (Blood Pressure)',
-                        style: TextStyle(
-                          fontFamily: 'NotoSans',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF0A1F1E),
-                        ),
-                      ),
-                      Text(
-                        'BP in mmHg',
-                        style: TextStyle(
-                          fontFamily: 'NotoSans',
-                          fontSize: 11,
-                          color: Color(0xFF6E7A73),
-                        ),
-                      ),
-                    ],
+                  const Icon(Icons.monitor_heart_rounded, color: AppColors.primary, size: 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    isHindi ? 'रक्तचाप' : 'Blood Pressure',
+                    style: const TextStyle(
+                      fontFamily: 'NotoSans',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0A1F1E),
+                    ),
                   ),
                 ],
               ),
@@ -527,9 +514,9 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'ऊपरी (Systolic)',
-                        style: TextStyle(fontFamily: 'NotoSans', fontSize: 11, color: Color(0xFF3E4943)),
+                      Text(
+                        isHindi ? 'ऊपरी (सिस्टोलिक)' : 'Systolic',
+                        style: const TextStyle(fontFamily: 'NotoSans', fontSize: 11, color: Color(0xFF3E4943)),
                       ),
                       TextField(
                         controller: _bpSysController,
@@ -543,6 +530,10 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                         decoration: const InputDecoration(
                           hintText: '120',
                           border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
+                          contentPadding: EdgeInsets.symmetric(vertical: 4),
                           isDense: true,
                         ),
                       ),
@@ -561,9 +552,9 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'निचला (Diastolic)',
-                        style: TextStyle(fontFamily: 'NotoSans', fontSize: 11, color: Color(0xFF3E4943)),
+                      Text(
+                        isHindi ? 'निचला (डायस्टोलिक)' : 'Diastolic',
+                        style: const TextStyle(fontFamily: 'NotoSans', fontSize: 11, color: Color(0xFF3E4943)),
                       ),
                       TextField(
                         controller: _bpDiaController,
@@ -577,6 +568,10 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                         decoration: const InputDecoration(
                           hintText: '80',
                           border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
+                          contentPadding: EdgeInsets.symmetric(vertical: 4),
                           isDense: true,
                         ),
                       ),
@@ -597,9 +592,9 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                   color: const Color(0xFFDCF2F0),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Text(
-                  'सामान्य / Ideal: 120/80',
-                  style: TextStyle(
+                child: Text(
+                  isHindi ? 'सामान्य: 120/80' : 'Ideal: 120/80',
+                  style: const TextStyle(
                     fontFamily: 'NotoSans',
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
@@ -612,9 +607,9 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                   _bpSysController.clear();
                   _bpDiaController.clear();
                 }),
-                child: const Text(
-                  'मुझे नहीं पता / I don\'t know',
-                  style: TextStyle(fontFamily: 'NotoSans', fontSize: 11, color: AppColors.secondary),
+                child: Text(
+                  isHindi ? 'मुझे नहीं पता' : "I don't know",
+                  style: const TextStyle(fontFamily: 'NotoSans', fontSize: 11, color: AppColors.secondary),
                 ),
               ),
             ],
@@ -625,7 +620,7 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
   }
 
   // ── 3. Pulse / Heart Rate Card ────────────────────────────────────────────
-  Widget _buildPulseCard() {
+  Widget _buildPulseCard(bool isHindi) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -639,31 +634,18 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.favorite_rounded, color: AppColors.primary, size: 22),
-                  SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'नाड़ी की गति',
-                        style: TextStyle(
-                          fontFamily: 'NotoSans',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF0A1F1E),
-                        ),
-                      ),
-                      Text(
-                        'Pulse / Heart Rate',
-                        style: TextStyle(
-                          fontFamily: 'NotoSans',
-                          fontSize: 11,
-                          color: Color(0xFF6E7A73),
-                        ),
-                      ),
-                    ],
+                  const Icon(Icons.favorite_rounded, color: AppColors.primary, size: 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    isHindi ? 'नाड़ी की गति' : 'Heart Rate',
+                    style: const TextStyle(
+                      fontFamily: 'NotoSans',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0A1F1E),
+                    ),
                   ),
                 ],
               ),
@@ -696,7 +678,7 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
               Column(
                 children: [
                   SizedBox(
-                    width: 80,
+                    width: 95,
                     child: TextField(
                       controller: _hrController,
                       keyboardType: TextInputType.number,
@@ -707,7 +689,14 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                         fontWeight: FontWeight.w800,
                         color: Color(0xFF0A1F1E),
                       ),
-                      decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        filled: false,
+                        contentPadding: EdgeInsets.zero,
+                        isDense: true,
+                      ),
                       onChanged: (_) => setState(() {}),
                     ),
                   ),
@@ -717,9 +706,9 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                       color: const Color(0xFFDCF2F0),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Text(
-                      'सामान्य / Normal (60 - 100 bpm)',
-                      style: TextStyle(
+                    child: Text(
+                      isHindi ? 'सामान्य (60 - 100 bpm)' : 'Normal (60 - 100 bpm)',
+                      style: const TextStyle(
                         fontFamily: 'NotoSans',
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
@@ -745,9 +734,9 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: () => setState(() => _hrController.clear()),
-              child: const Text(
-                'मुझे नहीं पता / I don\'t know',
-                style: TextStyle(fontFamily: 'NotoSans', fontSize: 11, color: AppColors.secondary),
+              child: Text(
+                isHindi ? 'मुझे नहीं पता' : "I don't know",
+                style: const TextStyle(fontFamily: 'NotoSans', fontSize: 11, color: AppColors.secondary),
               ),
             ),
           ),
@@ -757,7 +746,7 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
   }
 
   // ── 4. Oxygen Saturation (SpO2) Card ──────────────────────────────────────
-  Widget _buildSpo2Card() {
+  Widget _buildSpo2Card(bool isHindi) {
     int? val = int.tryParse(_spo2Controller.text);
     bool isLow = val != null && val < 95;
 
@@ -774,31 +763,18 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.air_rounded, color: AppColors.primary, size: 22),
-                  SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'ऑक्सीजन स्तर',
-                        style: TextStyle(
-                          fontFamily: 'NotoSans',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF0A1F1E),
-                        ),
-                      ),
-                      Text(
-                        'SpO2 / Oxygen Saturation',
-                        style: TextStyle(
-                          fontFamily: 'NotoSans',
-                          fontSize: 11,
-                          color: Color(0xFF6E7A73),
-                        ),
-                      ),
-                    ],
+                  const Icon(Icons.air_rounded, color: AppColors.primary, size: 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    isHindi ? 'ऑक्सीजन स्तर (SpO2)' : 'Oxygen Level (SpO2)',
+                    style: const TextStyle(
+                      fontFamily: 'NotoSans',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0A1F1E),
+                    ),
                   ),
                 ],
               ),
@@ -834,7 +810,7 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       SizedBox(
-                        width: 70,
+                        width: 85,
                         child: TextField(
                           controller: _spo2Controller,
                           keyboardType: TextInputType.number,
@@ -845,7 +821,14 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                             fontWeight: FontWeight.w800,
                             color: Color(0xFF0A1F1E),
                           ),
-                          decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            filled: false,
+                            contentPadding: EdgeInsets.zero,
+                            isDense: true,
+                          ),
                           onChanged: (_) => setState(() {}),
                         ),
                       ),
@@ -867,7 +850,9 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      isLow ? 'सतर्कता / Low (<95%)' : 'सुरक्षित / Safe (95% - 100%)',
+                      isLow
+                          ? (isHindi ? 'सतर्कता (<95%)' : 'Low (<95%)')
+                          : (isHindi ? 'सुरक्षित (95% - 100%)' : 'Safe (95% - 100%)'),
                       style: TextStyle(
                         fontFamily: 'NotoSans',
                         fontSize: 10,
@@ -894,9 +879,9 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: () => setState(() => _spo2Controller.clear()),
-              child: const Text(
-                'मुझे नहीं पता / I don\'t know',
-                style: TextStyle(fontFamily: 'NotoSans', fontSize: 11, color: AppColors.secondary),
+              child: Text(
+                isHindi ? 'मुझे नहीं पता' : "I don't know",
+                style: const TextStyle(fontFamily: 'NotoSans', fontSize: 11, color: AppColors.secondary),
               ),
             ),
           ),
@@ -906,7 +891,7 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
   }
 
   // ── 5. Respiratory Rate Card ──────────────────────────────────────────────
-  Widget _buildRespiratoryCard() {
+  Widget _buildRespiratoryCard(bool isHindi) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -920,31 +905,18 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.air_rounded, color: AppColors.primary, size: 22),
-                  SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'श्वसन दर',
-                        style: TextStyle(
-                          fontFamily: 'NotoSans',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF0A1F1E),
-                        ),
-                      ),
-                      Text(
-                        'Respiratory Rate (Optional)',
-                        style: TextStyle(
-                          fontFamily: 'NotoSans',
-                          fontSize: 11,
-                          color: Color(0xFF6E7A73),
-                        ),
-                      ),
-                    ],
+                  const Icon(Icons.air_rounded, color: AppColors.primary, size: 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    isHindi ? 'श्वसन दर' : 'Respiratory Rate',
+                    style: const TextStyle(
+                      fontFamily: 'NotoSans',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0A1F1E),
+                    ),
                   ),
                 ],
               ),
@@ -954,9 +926,9 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                   color: const Color(0xFFDCF2F0),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text(
-                  'breaths/min',
-                  style: TextStyle(fontFamily: 'NotoSans', fontSize: 11, color: Color(0xFF3E4943)),
+                child: Text(
+                  isHindi ? 'श्वास/मिनट' : 'breaths/min',
+                  style: const TextStyle(fontFamily: 'NotoSans', fontSize: 11, color: Color(0xFF3E4943)),
                 ),
               ),
             ],
@@ -984,16 +956,20 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                 decoration: const InputDecoration(
                   hintText: '--',
                   border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  filled: false,
+                  contentPadding: EdgeInsets.symmetric(vertical: 4),
                   isDense: true,
                 ),
               ),
             ),
           ),
           const SizedBox(height: 6),
-          const Center(
+          Center(
             child: Text(
-              'सामान्य वयस्क / Typical adult: 12-20',
-              style: TextStyle(fontFamily: 'NotoSans', fontSize: 11, color: Color(0xFF6E7A73)),
+              isHindi ? 'सामान्य वयस्क: 12-20' : 'Typical adult: 12-20',
+              style: const TextStyle(fontFamily: 'NotoSans', fontSize: 11, color: Color(0xFF6E7A73)),
             ),
           ),
         ],
@@ -1002,7 +978,7 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
   }
 
   // ── Quick Clinical Assurance Card ─────────────────────────────────────────
-  Widget _buildClinicalAssuranceCard() {
+  Widget _buildClinicalAssuranceCard(bool isHindi) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1022,23 +998,25 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
             child: const Icon(Icons.healing_rounded, color: AppColors.primary, size: 20),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'सटीक सलाह के लिए / For accurate advice',
-                  style: TextStyle(
+                  isHindi ? 'सटीक सलाह के लिए' : 'For accurate guidance',
+                  style: const TextStyle(
                     fontFamily: 'NotoSans',
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF0A1F1E),
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'यदि कोई उपकरण पास नहीं है, तो सीधे छोड़ सकते हैं। हमारा AI डॉक्टर लक्षणों के आधार पर भी परामर्श देगा।',
-                  style: TextStyle(
+                  isHindi
+                      ? 'यदि कोई उपकरण पास नहीं है, तो सीधे छोड़ सकते हैं। हमारा AI डॉक्टर लक्षणों के आधार पर भी परामर्श देगा।'
+                      : 'If you do not have medical devices nearby, you can skip. The AI will evaluate based on your reported symptoms.',
+                  style: const TextStyle(
                     fontFamily: 'NotoSans',
                     fontSize: 11,
                     color: Color(0xFF3E4943),
@@ -1054,7 +1032,7 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
   }
 
   // ── Bottom Action Deck ────────────────────────────────────────────────────
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(bool isHindi) {
     return Column(
       children: [
         ElevatedButton.icon(
@@ -1066,9 +1044,9 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
                   child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                 )
               : const Icon(Icons.verified_rounded, size: 20),
-          label: const Text(
-            'माप सहेजें और मूल्यांकन देखें / Save & Urgency Check',
-            style: TextStyle(
+          label: Text(
+            isHindi ? 'माप सहेजें और मूल्यांकन देखें' : 'Save Vitals & Assess Urgency',
+            style: const TextStyle(
               fontFamily: 'NotoSans',
               fontSize: 13,
               fontWeight: FontWeight.w700,
@@ -1086,9 +1064,9 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
         OutlinedButton.icon(
           onPressed: _isLoading ? null : _skipVitals,
           icon: const Icon(Icons.skip_next_rounded, size: 20, color: AppColors.secondary),
-          label: const Text(
-            'अभी छोड़ें / Skip Vitals & Assess Urgency',
-            style: TextStyle(
+          label: Text(
+            isHindi ? 'अभी छोड़ें और मूल्यांकन देखें' : 'Skip Vitals & Assess Urgency',
+            style: const TextStyle(
               fontFamily: 'NotoSans',
               fontSize: 13,
               fontWeight: FontWeight.w700,

@@ -10,25 +10,17 @@
 //   5. User sends → ChatService.sendText()
 //   6. dispose → ChatService.disconnect()
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/providers/shared_preferences_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/services/chat_service.dart';
 import '../../core/services/consultation_service.dart';
 import '../../core/theme/app_theme.dart';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Mock message model (mock-mode only — keeps M1 UX intact)
-// ─────────────────────────────────────────────────────────────────────────────
-class _MockMsg {
-  final String text;
-  final bool isPatient;
-  final DateTime time;
-  _MockMsg({required this.text, required this.isPatient, required this.time});
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Chat Screen
@@ -52,38 +44,68 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
-  bool _isSending = false;
+  final bool _isSending = false;
 
-  // ── Mock state ──
-  final List<_MockMsg> _mockMessages = [];
-
-  // ── Live state ──
-  final List<ChatMessageModel> _liveMessages = [];
+  // Unified message state (cached locally and synced with server in live mode)
+  final List<ChatMessageModel> _messages = [];
   StreamSubscription<ChatServiceEvent>? _eventSub;
   bool _wsConnected = false;
   String? _wsError;
   bool _isHistoryLoaded = false;
-  String _myRole = 'patient'; // filled from auth on init
+  String _myRole = 'patient';
 
   @override
   void initState() {
     super.initState();
-    if (_useMocks) {
-      _mockMessages.add(_MockMsg(
-        text:
-            'Hello! I am ${widget.doctorName ?? 'your doctor'}. I have reviewed your symptom report. How are you feeling now?',
-        isPatient: false,
-        time: DateTime.now().subtract(const Duration(minutes: 2)),
-      ));
-    } else {
+    final auth = ref.read(authProvider);
+    _myRole = auth.role == UserRole.doctor ? 'doctor' : 'patient';
+    _loadCachedMessages();
+    final docName = widget.doctorName ?? 'Doctor';
+    final docId = widget.consultationId.replaceAll('mock-consult-', '');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(authProvider.notifier).saveDoctorConsultation(
+        doctorId: docId,
+        consultationId: widget.consultationId,
+        doctorName: docName,
+      );
+    });
+    if (!_useMocks) {
       _connectLive();
+    } else {
+      _isHistoryLoaded = true;
     }
+  }
+
+  void _loadCachedMessages() {
+    try {
+      final prefs = ref.read(sharedPreferencesProvider);
+      final raw = prefs.getString('chat_history_${widget.consultationId}');
+      if (raw != null && raw.isNotEmpty) {
+        final list = (jsonDecode(raw) as List)
+            .map((m) => ChatMessageModel.fromJson(m as Map<String, dynamic>))
+            .toList();
+        setState(() {
+          _messages.clear();
+          _messages.addAll(list);
+          _isHistoryLoaded = true;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+      }
+    } catch (_) {}
+  }
+
+  void _persistMessages() {
+    try {
+      final prefs = ref.read(sharedPreferencesProvider);
+      final raw = jsonEncode(_messages.map((m) => m.toJson()).toList());
+      prefs.setString('chat_history_${widget.consultationId}', raw);
+    } catch (_) {}
   }
 
   void _connectLive() {
     final auth = ref.read(authProvider);
     final token = auth.accessToken ?? '';
-    _myRole = auth.role == UserRole.doctor ? 'doctor' : 'patient';
 
     final chatService = ref.read(chatServiceProvider);
     chatService.connect(widget.consultationId, token);
@@ -96,16 +118,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     switch (event) {
       case ChatHistoryLoaded(:final messages):
         setState(() {
-          _liveMessages.clear();
-          _liveMessages.addAll(messages);
+          for (final msg in messages) {
+            if (!_messages.any((m) => m.id == msg.id)) {
+              _messages.add(msg);
+            }
+          }
+          _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
           _isHistoryLoaded = true;
         });
+        _persistMessages();
         WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
       case ChatMessageReceived(:final message):
         // Avoid duplicates (WS may echo our own sent message back)
-        if (!_liveMessages.any((m) => m.id == message.id)) {
-          setState(() => _liveMessages.add(message));
+        if (!_messages.any((m) => m.id == message.id)) {
+          setState(() => _messages.add(message));
+          _persistMessages();
           WidgetsBinding.instance
               .addPostFrameCallback((_) => _scrollToBottom());
         }
@@ -136,27 +164,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (text.isEmpty || _isSending) return;
     _controller.clear();
 
-    if (_useMocks) {
-      setState(() {
-        _mockMessages.add(_MockMsg(text: text, isPatient: true, time: DateTime.now()));
-        _isSending = true;
-      });
-      _scrollToBottom();
-      await Future.delayed(const Duration(seconds: 2));
-      if (!mounted) return;
-      setState(() {
-        _isSending = false;
-        _mockMessages.add(_MockMsg(
-          text:
-              'Thank you for sharing that. Based on your symptoms, I recommend resting and taking paracetamol. Please drink plenty of fluids.',
-          isPatient: false,
-          time: DateTime.now(),
-        ));
-      });
-      _scrollToBottom();
-    } else {
-      // Live: send over WebSocket. The server will broadcast it back and
-      // it will arrive via the ChatMessageReceived event.
+    final newMsg = ChatMessageModel(
+      id: 'msg-${DateTime.now().millisecondsSinceEpoch}',
+      consultationId: widget.consultationId,
+      senderRole: _myRole,
+      messageType: 'text',
+      text: text,
+      timestamp: DateTime.now(),
+    );
+
+    setState(() {
+      _messages.add(newMsg);
+    });
+    _persistMessages();
+    _scrollToBottom();
+
+    final docName = widget.doctorName ?? 'Doctor';
+    final docId = widget.consultationId.replaceAll('mock-consult-', '');
+    ref.read(authProvider.notifier).saveDoctorConsultation(
+      doctorId: docId,
+      consultationId: widget.consultationId,
+      doctorName: docName,
+    );
+
+    if (!_useMocks) {
       ref.read(chatServiceProvider).sendText(text);
     }
   }
@@ -178,7 +209,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final subtitle = _useMocks
-        ? 'Consultation · Mock mode'
+        ? 'Consultation · Active thread'
         : _wsConnected
             ? 'Connected'
             : _wsError != null
@@ -253,9 +284,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
             // Message list
             Expanded(
-              child: _useMocks
-                  ? _buildMockList()
-                  : _buildLiveList(),
+              child: _buildMessageList(),
             ),
 
             // Input bar
@@ -270,29 +299,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  Widget _buildMockList() {
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.all(16),
-      itemCount: _mockMessages.length + (_isSending ? 1 : 0),
-      itemBuilder: (context, i) {
-        if (i == _mockMessages.length) return const _TypingIndicator();
-        final m = _mockMessages[i];
-        return _ChatBubble(
-          text: m.text,
-          isMe: m.isPatient,
-          timestamp: m.time,
-        );
-      },
-    );
-  }
-
-  Widget _buildLiveList() {
+  Widget _buildMessageList() {
     if (!_isHistoryLoaded) {
       return const Center(
           child: CircularProgressIndicator(color: AppColors.primary));
     }
-    if (_liveMessages.isEmpty) {
+    if (_messages.isEmpty) {
       return Center(
         child: Text(
           'No messages yet.\nSend a message to start the consultation.',
@@ -306,9 +318,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
-      itemCount: _liveMessages.length,
+      itemCount: _messages.length,
       itemBuilder: (context, i) {
-        final m = _liveMessages[i];
+        final m = _messages[i];
         final isMe = m.senderRole == _myRole;
         return _ChatBubble(
           text: m.text ?? '[${m.messageType}]',
@@ -472,59 +484,3 @@ class _ChatBubble extends StatelessWidget {
   }
 }
 
-class _TypingIndicator extends StatelessWidget {
-  const _TypingIndicator();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: const BoxDecoration(
-                color: AppColors.primaryLight, shape: BoxShape.circle),
-            child: const Icon(Icons.medical_services_rounded,
-                color: AppColors.primary, size: 16),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
-                bottomLeft: Radius.circular(4),
-                bottomRight: Radius.circular(16),
-              ),
-              border: Border.all(color: AppColors.surfaceBorder),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Doctor is typing',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.onSurfaceVariant,
-                        fontStyle: FontStyle.italic,
-                      ),
-                ),
-                const SizedBox(width: 6),
-                const SizedBox(
-                  width: 20,
-                  height: 12,
-                  child: CircularProgressIndicator(
-                      color: AppColors.primary, strokeWidth: 1.5),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

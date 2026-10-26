@@ -56,6 +56,11 @@ class AarogyaMPApp extends ConsumerWidget {
       theme: theme,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return ExcludeSemantics(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

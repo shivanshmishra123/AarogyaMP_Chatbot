@@ -3,12 +3,22 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:aarogyamp/core/providers/shared_preferences_provider.dart';
 import 'package:aarogyamp/main.dart';
 
 void main() {
   testWidgets('App smoke test — renders without crashing', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
     await tester.pumpWidget(
-      const ProviderScope(child: AarogyaMPApp()),
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+        child: const AarogyaMPApp(),
+      ),
     );
     // Let splash screen timer complete and settle onto login
     await tester.pump(const Duration(milliseconds: 1600));

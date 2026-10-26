@@ -1,9 +1,9 @@
-// AarogyaMP — Assessment Result Screen (Stitch Prototype 5690353454197586822 Screen 8)
-// Full fidelity redesign matching official public health and AYUSH layout
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/models/assessment_model.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/providers/locale_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../widgets/shared_widgets.dart';
 
@@ -21,6 +21,19 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hasScope = context.findAncestorWidgetOfExactType<ProviderScope>() != null;
+    if (!hasScope) {
+      return _buildContent(context, false);
+    }
+    return Consumer(
+      builder: (context, ref, _) {
+        final isHindi = ref.watch(isHindiProvider);
+        return _buildContent(context, isHindi);
+      },
+    );
+  }
+
+  Widget _buildContent(BuildContext context, bool isHindi) {
     final result = widget.result;
 
     // Safety: if this is somehow an emergency result, redirect to emergency screen
@@ -33,14 +46,14 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
 
     final level = result.riskLevel.toUpperCase();
     final riskColor = _riskColor(level);
-    final hindiRiskTitle = _hindiRiskTitle(level);
-    final timeframeAdvice = _timeframeAdvice(level);
+    final riskTitle = _riskTitle(level, isHindi);
+    final timeframeAdvice = _timeframeAdvice(level, isHindi);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: StitchHeader(
         title: 'AarogyaMP',
-        subtitle: 'Assessment Result',
+        subtitle: isHindi ? 'मूल्यांकन परिणाम' : 'Assessment Result',
         showBack: true,
         onBackTap: () => context.go(Routes.patientHome),
       ),
@@ -54,13 +67,13 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.verified_user_outlined, size: 16, color: AppColors.primary),
-                      SizedBox(width: 5),
+                      const Icon(Icons.verified_user_outlined, size: 16, color: AppColors.primary),
+                      const SizedBox(width: 5),
                       Text(
-                        'आयुष्मान भारत (ABDM) अनुरूप',
-                        style: TextStyle(
+                        isHindi ? 'आयुष्मान भारत (ABDM) अनुरूप' : 'ABDM Compliant',
+                        style: const TextStyle(
                           fontFamily: 'NotoSans',
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -86,9 +99,9 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                           ),
                         ),
                         const SizedBox(width: 5),
-                        const Text(
-                          'आज, सक्रिय',
-                          style: TextStyle(
+                        Text(
+                          isHindi ? 'आज, सक्रिय' : 'Today, Active',
+                          style: const TextStyle(
                             fontFamily: 'NotoSans',
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
@@ -171,7 +184,7 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'स्वास्थ्य मूल्यांकन स्थिति / Health Assessment',
+                                isHindi ? 'स्वास्थ्य मूल्यांकन स्थिति' : 'Health Assessment',
                                 style: TextStyle(
                                   fontFamily: 'NotoSans',
                                   fontSize: 11,
@@ -182,7 +195,7 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                '$hindiRiskTitle / $level Urgency',
+                                riskTitle,
                                 style: const TextStyle(
                                   fontFamily: 'NotoSans',
                                   fontSize: 18,
@@ -211,29 +224,25 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                     Row(
                       children: [
                         _GaugePill(
-                          hindi: 'सामान्य',
-                          eng: 'Low',
+                          label: isHindi ? 'सामान्य' : 'Low',
                           isActive: level == 'LOW',
                           color: AppColors.riskLowText,
                         ),
                         const SizedBox(width: 6),
                         _GaugePill(
-                          hindi: 'मध्यम',
-                          eng: 'Moderate',
+                          label: isHindi ? 'मध्यम' : 'Moderate',
                           isActive: level == 'MODERATE',
                           color: AppColors.riskModerateText,
                         ),
                         const SizedBox(width: 6),
                         _GaugePill(
-                          hindi: 'उच्च',
-                          eng: 'High',
+                          label: isHindi ? 'उच्च' : 'High',
                           isActive: level == 'HIGH',
                           color: AppColors.riskHighText,
                         ),
                         const SizedBox(width: 6),
                         _GaugePill(
-                          hindi: 'आपातकाल',
-                          eng: 'Emergency',
+                          label: isHindi ? 'आपातकाल' : 'Emergency',
                           isActive: level == 'EMERGENCY',
                           color: AppColors.riskEmergencyText,
                         ),
@@ -257,9 +266,9 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'जोखिम स्तर का आधार:',
-                                  style: TextStyle(
+                                Text(
+                                  isHindi ? 'जोखिम स्तर का आधार:' : 'Assessment Rationale:',
+                                  style: const TextStyle(
                                     fontFamily: 'NotoSans',
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
@@ -309,13 +318,13 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            Icon(Icons.medical_services_rounded, color: AppColors.primary, size: 20),
-                            SizedBox(width: 8),
+                            const Icon(Icons.medical_services_rounded, color: AppColors.primary, size: 20),
+                            const SizedBox(width: 8),
                             Text(
-                              'सुझाया गया विशेषज्ञ परामर्श',
-                              style: TextStyle(
+                              isHindi ? 'सुझाया गया विशेषज्ञ परामर्श' : 'Recommended Consultation',
+                              style: const TextStyle(
                                 fontFamily: 'NotoSans',
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
@@ -330,9 +339,9 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                             color: AppColors.primaryLight,
                             borderRadius: BorderRadius.circular(9999),
                           ),
-                          child: const Text(
-                            'Primary Match',
-                            style: TextStyle(
+                          child: Text(
+                            isHindi ? 'प्राथमिक सुझाव' : 'Primary Match',
+                            style: const TextStyle(
                               fontFamily: 'NotoSans',
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -353,7 +362,9 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${result.recommendedSpecialty ?? "General Physician"} (सामान्य चिकित्सक) या आयुष विशेषज्ञ',
+                            isHindi
+                                ? '${result.recommendedSpecialty ?? "सामान्य चिकित्सक"} या आयुष विशेषज्ञ'
+                                : '${result.recommendedSpecialty ?? "General Physician"} or AYUSH Specialist',
                             style: const TextStyle(
                               fontFamily: 'NotoSans',
                               fontSize: 14,
@@ -362,9 +373,11 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            'उद्देश्य / Reason: प्राथमिक जांच, शारीरिक तापमान संतुलन और समग्र स्वास्थ्य सलाह हेतु।',
-                            style: TextStyle(
+                          Text(
+                            isHindi
+                                ? 'उद्देश्य: प्राथमिक जांच, शारीरिक तापमान संतुलन और समग्र स्वास्थ्य सलाह हेतु।'
+                                : 'Reason: Primary evaluation, symptom relief, and overall health guidance.',
+                            style: const TextStyle(
                               fontFamily: 'NotoSans',
                               fontSize: 12,
                               color: AppColors.onSurfaceVariant,
@@ -381,14 +394,16 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                         color: AppColors.surfaceContainer,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.location_on_outlined, size: 16, color: AppColors.secondary),
-                          SizedBox(width: 6),
+                          const Icon(Icons.location_on_outlined, size: 16, color: AppColors.secondary),
+                          const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              'सार्वजनिक विकल्प: आप सीधे निकटतम प्राथमिक स्वास्थ्य केंद्र (PHC) अथवा किसी भी पंजीकृत MBBS सामान्य चिकित्सक से मिल सकते हैं।',
-                              style: TextStyle(
+                              isHindi
+                                  ? 'सार्वजनिक विकल्प: आप सीधे निकटतम प्राथमिक स्वास्थ्य केंद्र (PHC) अथवा किसी भी पंजीकृत MBBS डॉक्टर से मिल सकते हैं।'
+                                  : 'Public Option: You can visit your nearest Primary Health Centre (PHC) or any registered medical practitioner.',
+                              style: const TextStyle(
                                 fontFamily: 'NotoSans',
                                 fontSize: 11,
                                 color: AppColors.onSurface,
@@ -417,13 +432,13 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Row(
+                      Row(
                         children: [
-                          Icon(Icons.science_outlined, color: AppColors.outline, size: 20),
-                          SizedBox(width: 8),
+                          const Icon(Icons.science_outlined, color: AppColors.outline, size: 20),
+                          const SizedBox(width: 8),
                           Text(
-                            'Possible Causes',
-                            style: TextStyle(
+                            isHindi ? 'संभावित कारण' : 'Possible Causes',
+                            style: const TextStyle(
                               fontFamily: 'NotoSans',
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -440,9 +455,11 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                           color: const Color(0xFFFFDAD6),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Text(
-                          'यह चिकित्सीय निदान नहीं है / Possible Considerations - NOT a Diagnosis',
-                          style: TextStyle(
+                        child: Text(
+                          isHindi
+                              ? 'यह चिकित्सीय निदान नहीं है — केवल संभावित स्थितियां'
+                              : 'Possible Considerations — NOT a Diagnosis',
+                          style: const TextStyle(
                             fontFamily: 'NotoSans',
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -451,9 +468,11 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      const Text(
-                        'आपके द्वारा बताए गए लक्षणों के आधार पर यह संभावित स्थितियां हो सकती हैं। अंतिम पुष्टि केवल डॉक्टर की जांच के बाद ही संभव है:',
-                        style: TextStyle(
+                      Text(
+                        isHindi
+                            ? 'आपके द्वारा बताए गए लक्षणों के आधार पर यह संभावित स्थितियां हो सकती हैं। अंतिम पुष्टि केवल डॉक्टर की जांच के बाद ही संभव है:'
+                            : 'Based on your reported symptoms, these conditions may be considered. A doctor must evaluate you for a confirmed diagnosis:',
+                        style: const TextStyle(
                           fontFamily: 'NotoSans',
                           fontSize: 12,
                           color: AppColors.onSurfaceVariant,
@@ -517,31 +536,33 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                   color: AppColors.surfaceContainer,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    CircleAvatar(
+                    const CircleAvatar(
                       radius: 20,
                       backgroundColor: Colors.white,
                       child: Icon(Icons.self_improvement_rounded, color: AppColors.primary, size: 24),
                     ),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'पर्याप्त जल और विश्राम लें',
-                            style: TextStyle(
+                            isHindi ? 'पर्याप्त जल और विश्राम लें' : 'Stay Hydrated & Rest Well',
+                            style: const TextStyle(
                               fontFamily: 'NotoSans',
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
                               color: AppColors.onSurface,
                             ),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
-                            'गुनगुना पानी पिएं और आंखों को तनाव से बचाएं। यह आराम की अवधि आपके शरीर की रोग प्रतिरोधक क्षमता बढ़ाती है।',
-                            style: TextStyle(
+                            isHindi
+                                ? 'गुनगुना पानी पिएं और आँखों को तनाव से बचाएं। यह आराम आपके स्वास्थ्य लाभ में मदद करता है।'
+                                : 'Drink plenty of warm fluids, rest well, and avoid physical or screen strain to aid recovery.',
+                            style: const TextStyle(
                               fontFamily: 'NotoSans',
                               fontSize: 11,
                               color: AppColors.onSurfaceVariant,
@@ -569,8 +590,8 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                 icon: const Icon(Icons.person_search_rounded, size: 22),
                 label: Text(
                   result.recommendedSpecialty != null
-                      ? 'Find a ${result.recommendedSpecialty} near me'
-                      : 'Find Verified Doctors',
+                      ? (isHindi ? '${result.recommendedSpecialty} डॉक्टर खोजें' : 'Find a ${result.recommendedSpecialty} near me')
+                      : (isHindi ? 'सत्यापित डॉक्टर खोजें' : 'Find Verified Doctors'),
                   style: const TextStyle(
                     fontFamily: 'NotoSans',
                     fontSize: 15,
@@ -597,10 +618,10 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                       onPressed: () {
                         setState(() => _pdfSaved = true);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('मूल्यांकन रिपोर्ट PDF सहेजी गई! (Report saved)'),
+                          SnackBar(
+                            content: Text(isHindi ? 'मूल्यांकन रिपोर्ट PDF सहेजी गई!' : 'Assessment report saved as PDF!'),
                             backgroundColor: AppColors.primary,
-                            duration: Duration(seconds: 2),
+                            duration: const Duration(seconds: 2),
                           ),
                         );
                       },
@@ -610,7 +631,9 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                         color: _pdfSaved ? AppColors.primary : AppColors.onSurface,
                       ),
                       label: Text(
-                        _pdfSaved ? 'सहेजा गया!' : 'रिपोर्ट सहेजें / PDF',
+                        _pdfSaved
+                            ? (isHindi ? 'सहेजा गया!' : 'Saved!')
+                            : (isHindi ? 'रिपोर्ट सहेजें' : 'Save PDF'),
                         style: const TextStyle(
                           fontFamily: 'NotoSans',
                           fontSize: 12,
@@ -629,11 +652,11 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => _showQrModal(context, result.assessmentId),
+                      onPressed: () => _showQrModal(context, result.assessmentId, isHindi),
                       icon: const Icon(Icons.qr_code_2_rounded, size: 18, color: AppColors.secondary),
-                      label: const Text(
-                        'दिखाएं / QR Code',
-                        style: TextStyle(
+                      label: Text(
+                        isHindi ? 'QR कोड दिखाएं' : 'Show QR Code',
+                        style: const TextStyle(
                           fontFamily: 'NotoSans',
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -656,9 +679,9 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
               TextButton.icon(
                 onPressed: () => context.go(Routes.patientHome),
                 icon: const Icon(Icons.home_outlined, size: 18, color: AppColors.onSurfaceVariant),
-                label: const Text(
-                  'होम पर वापस जाएं / Back to Home',
-                  style: TextStyle(
+                label: Text(
+                  isHindi ? 'होम पर वापस जाएं' : 'Back to Home',
+                  style: const TextStyle(
                     fontFamily: 'NotoSans',
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -676,18 +699,18 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
     );
   }
 
-  void _showQrModal(BuildContext context, String assessmentId) {
+  void _showQrModal(BuildContext context, String assessmentId, bool isHindi) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Column(
+        title: Column(
           children: [
-            Icon(Icons.qr_code_rounded, size: 40, color: AppColors.primary),
-            SizedBox(height: 8),
+            const Icon(Icons.qr_code_rounded, size: 40, color: AppColors.primary),
+            const SizedBox(height: 8),
             Text(
-              'ABDM टोकन QR कोड',
-              style: TextStyle(fontFamily: 'NotoSans', fontSize: 16, fontWeight: FontWeight.w700),
+              isHindi ? 'ABDM टोकन QR कोड' : 'ABDM Token QR Code',
+              style: const TextStyle(fontFamily: 'NotoSans', fontSize: 16, fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),
           ],
@@ -695,9 +718,11 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'क्लिनिक या PHC रिसेप्शन पर यह QR स्कैन कराएं ताकि आपका मूल्यांकन सीधे डॉक्टर के डैशबोर्ड पर साझा हो सके।',
-              style: TextStyle(fontFamily: 'NotoSans', fontSize: 12, color: AppColors.onSurfaceVariant),
+            Text(
+              isHindi
+                  ? 'क्लिनिक या PHC रिसेप्शन पर यह QR स्कैन कराएं ताकि आपका मूल्यांकन सीधे डॉक्टर के डैशबोर्ड पर साझा हो सके।'
+                  : 'Scan this QR code at the clinic or PHC reception to share your assessment directly with the doctor.',
+              style: const TextStyle(fontFamily: 'NotoSans', fontSize: 12, color: AppColors.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -711,7 +736,7 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'टोकन: MP-ABDM-${assessmentId.substring(0, 8).toUpperCase()}',
+              '${isHindi ? 'टोकन' : 'Token'}: MP-ABDM-${assessmentId.length >= 8 ? assessmentId.substring(0, 8).toUpperCase() : assessmentId.toUpperCase()}',
               style: const TextStyle(
                 fontFamily: 'NotoSans',
                 fontSize: 12,
@@ -729,7 +754,7 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
               foregroundColor: Colors.white,
               minimumSize: const Size(double.infinity, 42),
             ),
-            child: const Text('बंद करें / Close'),
+            child: Text(isHindi ? 'बंद करें' : 'Close'),
           ),
         ],
       ),
@@ -749,40 +774,62 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
     }
   }
 
-  String _hindiRiskTitle(String level) {
-    switch (level) {
-      case 'EMERGENCY':
-        return 'आपातकालीन जोखिम';
-      case 'HIGH':
-        return 'उच्च जोखिम';
-      case 'MODERATE':
-        return 'मध्यम जोखिम';
-      default:
-        return 'सामान्य / कम जोखिम';
+  String _riskTitle(String level, bool isHindi) {
+    if (isHindi) {
+      switch (level) {
+        case 'EMERGENCY':
+          return 'आपातकालीन जोखिम';
+        case 'HIGH':
+          return 'उच्च जोखिम';
+        case 'MODERATE':
+          return 'मध्यम जोखिम';
+        default:
+          return 'सामान्य (कम जोखिम)';
+      }
+    } else {
+      switch (level) {
+        case 'EMERGENCY':
+          return 'Emergency Risk';
+        case 'HIGH':
+          return 'High Risk';
+        case 'MODERATE':
+          return 'Moderate Risk';
+        default:
+          return 'Low Urgency';
+      }
     }
   }
 
-  String _timeframeAdvice(String level) {
-    switch (level) {
-      case 'HIGH':
-        return 'सलाह: 6-12 घंटे के भीतर डॉक्टर से संपर्क करें (Consult within 6-12h)';
-      case 'MODERATE':
-        return 'सलाह: 24 घंटे में डॉक्टर को दिखाएं (Consult within 24h)';
-      default:
-        return 'सलाह: सामान्य परामर्श अथवा टेली-ओपीडी (Routine Consultation)';
+  String _timeframeAdvice(String level, bool isHindi) {
+    if (isHindi) {
+      switch (level) {
+        case 'HIGH':
+          return 'सलाह: 6-12 घंटे के भीतर डॉक्टर से संपर्क करें';
+        case 'MODERATE':
+          return 'सलाह: 24 घंटे में डॉक्टर को दिखाएं';
+        default:
+          return 'सलाह: सामान्य परामर्श अथवा टेली-ओपीडी';
+      }
+    } else {
+      switch (level) {
+        case 'HIGH':
+          return 'Advice: Consult a doctor within 6-12 hours';
+        case 'MODERATE':
+          return 'Advice: Consult a doctor within 24 hours';
+        default:
+          return 'Advice: Routine consultation or Tele-OPD';
+      }
     }
   }
 }
 
 class _GaugePill extends StatelessWidget {
-  final String hindi;
-  final String eng;
+  final String label;
   final bool isActive;
   final Color color;
 
   const _GaugePill({
-    required this.hindi,
-    required this.eng,
+    required this.label,
     required this.isActive,
     required this.color,
   });
@@ -805,31 +852,17 @@ class _GaugePill extends StatelessWidget {
                 ]
               : null,
         ),
-        child: Column(
-          children: [
-            Text(
-              hindi,
-              style: TextStyle(
-                fontFamily: 'NotoSans',
-                fontSize: 11,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                color: isActive ? Colors.white : AppColors.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              eng,
-              style: TextStyle(
-                fontFamily: 'NotoSans',
-                fontSize: 9,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                color: isActive ? Colors.white70 : AppColors.onSurfaceVariant.withValues(alpha: 0.8),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'NotoSans',
+            fontSize: 11,
+            fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+            color: isActive ? Colors.white : AppColors.onSurfaceVariant,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
