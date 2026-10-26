@@ -726,9 +726,20 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
     );
   }
 
-  void _showProfileSheet(BuildContext context, WidgetRef ref, dynamic auth) {
+  void _showProfileSheet(BuildContext context, WidgetRef ref, AuthState auth) {
+    final displayName = (auth.name != null && auth.name!.isNotEmpty)
+        ? auth.name!
+        : 'नागरिक / Citizen';
+    final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
+    final phoneDisplay = (auth.phone != null && auth.phone!.isNotEmpty)
+        ? auth.phone!
+        : (auth.userId != null && auth.userId!.isNotEmpty
+            ? 'ID: ${auth.userId}'
+            : 'सत्यापित नागरिक (Citizen)');
+
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -742,42 +753,108 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
               children: [
                 CircleAvatar(
                   backgroundColor: AppColors.primary,
-                  radius: 24,
+                  radius: 26,
                   child: Text(
-                    (auth.name ?? 'U').substring(0, 1).toUpperCase(),
+                    initial,
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
-                      fontSize: 18,
+                      fontSize: 20,
                     ),
                   ),
                 ),
                 const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      auth.name ?? 'Patient',
-                      style: const TextStyle(
-                        fontFamily: 'NotoSans',
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.onSurface,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              displayName,
+                              style: const TextStyle(
+                                fontFamily: 'NotoSans',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.onSurface,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryLight,
+                              borderRadius: BorderRadius.circular(9999),
+                            ),
+                            child: const Text(
+                              'सत्यापित',
+                              style: TextStyle(
+                                fontFamily: 'NotoSans',
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primaryDark,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    Text(
-                      auth.phone ?? '',
-                      style: const TextStyle(
-                        fontFamily: 'NotoSans',
-                        fontSize: 13,
-                        color: AppColors.onSurfaceVariant,
+                      const SizedBox(height: 2),
+                      Text(
+                        phoneDisplay,
+                        style: const TextStyle(
+                          fontFamily: 'NotoSans',
+                          fontSize: 13,
+                          color: AppColors.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+            // Quick Links
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    leading: const Icon(Icons.medical_services_outlined, color: AppColors.primary),
+                    title: const Text('डॉक्टर खोजें / Find Doctors',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                    onTap: () {
+                      Navigator.of(ctx).pop();
+                      context.push(Routes.doctorList);
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    leading: const Icon(Icons.history_rounded, color: AppColors.secondary),
+                    title: const Text('परामर्श इतिहास / History',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                    onTap: () {
+                      Navigator.of(ctx).pop();
+                      context.push(Routes.history);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
             OutlinedButton.icon(
               onPressed: () {
                 Navigator.of(ctx).pop();
@@ -785,7 +862,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
               },
               icon: const Icon(Icons.logout_rounded, color: AppColors.emergencyRed),
               label: const Text(
-                'Log Out',
+                'लॉग आउट / Log Out',
                 style: TextStyle(
                   color: AppColors.emergencyRed,
                   fontWeight: FontWeight.w600,
@@ -794,6 +871,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 48),
                 side: const BorderSide(color: Color(0xFFFCA5A5)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ],
