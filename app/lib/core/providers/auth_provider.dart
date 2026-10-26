@@ -19,6 +19,7 @@ class AuthState {
   final UserRole? role;
   final String? userId;
   final String? name;
+  final String? phone;
   final String? accessToken;         // JWT access token — needed for WS auth
   final bool isDoctorVerified;       // for routing; see AuthService notes on M3 TODO
   final String? lastSymptomReportId; // latest assessment / symptom report id
@@ -30,6 +31,7 @@ class AuthState {
     this.role,
     this.userId,
     this.name,
+    this.phone,
     this.accessToken,
     this.isDoctorVerified = false,
     this.lastSymptomReportId,
@@ -42,6 +44,7 @@ class AuthState {
     UserRole? role,
     String? userId,
     String? name,
+    String? phone,
     String? accessToken,
     bool? isDoctorVerified,
     String? lastSymptomReportId,
@@ -53,6 +56,7 @@ class AuthState {
       role: role ?? this.role,
       userId: userId ?? this.userId,
       name: name ?? this.name,
+      phone: phone ?? this.phone,
       accessToken: accessToken ?? this.accessToken,
       isDoctorVerified: isDoctorVerified ?? this.isDoctorVerified,
       lastSymptomReportId: lastSymptomReportId ?? this.lastSymptomReportId,
@@ -103,7 +107,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       isAuthenticated: true,
       role: role,
       userId: 'mock-user-001',
-      name: role == UserRole.doctor ? 'Dr. Sunita Verma' : 'Rahul Sharma',
+      name: role == UserRole.doctor ? 'Dr. Sunita Verma' : 'रामेश्वर जी',
+      phone: '+91 98765 43210',
       accessToken: 'mock-token-not-real',
       isDoctorVerified: role == UserRole.doctor,
     );
@@ -119,6 +124,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       role: role,
       userId: 'mock-user-${DateTime.now().millisecondsSinceEpoch}',
       name: name,
+      phone: '+91 98765 00000',
       accessToken: 'mock-token-not-real',
       isDoctorVerified: false, // doctors always start unverified
     );
@@ -147,7 +153,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       isAuthenticated: true,
       role: UserRole.patient,
       userId: 'guest_patient',
-      name: 'नागरिक (Guest User)',
+      name: 'अतिथि नागरिक (Guest User)',
+      phone: '+91 98765 00000',
       accessToken: 'guest_token',
       isDoctorVerified: false,
     );

@@ -28,6 +28,7 @@ class AuthService {
   static const _kRefreshToken = 'auth_refresh_token';
   static const _kRole = 'auth_role';
   static const _kName = 'auth_name';
+  static const _kPhone = 'auth_phone';
   static const _kUserId = 'auth_user_id';
   static const _kLastConsultationId = 'auth_last_consultation_id';
   static const _kLastConsultationDoctorName = 'auth_last_consultation_doctor_name';
@@ -75,6 +76,7 @@ class AuthService {
     await _prefs.setString(_kRefreshToken, refreshToken);
     await _prefs.setString(_kRole, role);
     await _prefs.setString(_kUserId, userId);
+    await _prefs.setString(_kPhone, phone);
     // name may already be stored from a previous registration session; preserve it.
 
     return AuthState(
@@ -82,6 +84,7 @@ class AuthService {
       role: role == 'doctor' ? UserRole.doctor : UserRole.patient,
       userId: userId,
       name: _prefs.getString(_kName), // null on very first login — acceptable for M2
+      phone: phone,
       accessToken: accessToken,
       // M2: isDoctorVerified=true for live mode. Server enforces access on endpoints.
       // The "pending verification" screen is shown only immediately after registration.
@@ -123,12 +126,14 @@ class AuthService {
     await _prefs.setString(_kRole, role == UserRole.doctor ? 'doctor' : 'patient');
     await _prefs.setString(_kName, name);
     await _prefs.setString(_kUserId, userId);
+    await _prefs.setString(_kPhone, phone);
 
     return AuthState(
       isAuthenticated: true,
       role: role,
       userId: userId,
       name: name,
+      phone: phone,
       accessToken: accessToken,
       // Newly registered doctors are always "pending" — show pending screen.
       isDoctorVerified: role == UserRole.patient,
@@ -160,6 +165,7 @@ class AuthService {
       role: roleStr == 'doctor' ? UserRole.doctor : UserRole.patient,
       userId: userId,
       name: _prefs.getString(_kName),
+      phone: _prefs.getString(_kPhone),
       accessToken: token,
       isDoctorVerified: true, // M2: assume verified on session restore
       lastConsultationId: _prefs.getString(_kLastConsultationId),
@@ -220,6 +226,7 @@ class AuthService {
       _prefs.remove(_kRefreshToken),
       _prefs.remove(_kRole),
       _prefs.remove(_kName),
+      _prefs.remove(_kPhone),
       _prefs.remove(_kUserId),
       _prefs.remove(_kLastConsultationId),
       _prefs.remove(_kLastConsultationDoctorName),

@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-10-26 — Fix: Profile Modal NoSuchMethodError 'phone' on AuthState
+
+**Who:** Person C (Mobile Frontend Track)
+
+**What was done:**
+- **Resolved `NoSuchMethodError: 'phone' method not found Receiver: Instance of 'AuthState'`**:
+  - **Root Cause**: In `app/lib/features/auth/patient_home_screen.dart`, tapping the profile icon in the top `StitchHeader` triggered `_showProfileSheet(context, ref, auth)`. Inside `_showProfileSheet`, the code accessed `auth.phone ?? ''`. However, `auth` was typed `dynamic auth` and the `AuthState` model in `auth_provider.dart` lacked a `phone` field, resulting in a runtime `NoSuchMethodError`.
+  - **Model & Service Update**:
+    - `app/lib/core/providers/auth_provider.dart`: Added `final String? phone` to `AuthState` model and `copyWith`. Populated `phone` in `loginAsGuest` and mock login/register.
+    - `app/lib/core/services/auth_service.dart`: Added `_kPhone = 'auth_phone'` key to persist the citizen/doctor phone number in `SharedPreferences` across `login`, `register`, and `tryRestoreSession`, and cleared it on `clearSession`.
+  - **Profile Sheet Polish (`patient_home_screen.dart`)**:
+    - Replaced `dynamic auth` with strongly typed `AuthState auth`.
+    - Added safe avatar initial computation (`initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U'`).
+    - Added fallback display: shows phone if available, or citizen ID (`ID: ${auth.userId}`), or verified citizen label.
+    - Added quick navigation tiles for **"डॉक्टर खोजें / Find Doctors"** and **"परामर्श इतिहास / History"** directly within the profile modal.
+    - Added a styled **"लॉग आउट / Log Out"** action button.
+- **Verification**:
+  - `flutter test test/m3_ui_copy_and_resilience_test.dart` → All 7 tests passed.
+  - Flutter web restarted on port 3000. Tapping the header profile icon opens the bottom sheet cleanly without errors.
+
+---
+
 ## 2026-10-26 — Fix: Doctor Directory Screen, GPS Location Detection, and Distance Filters
 
 **Who:** Person C (Mobile Frontend Track)
