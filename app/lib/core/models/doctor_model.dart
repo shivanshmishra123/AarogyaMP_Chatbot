@@ -32,16 +32,19 @@ class Doctor {
   bool get isVerified => verificationStatus == 'verified';
 
   factory Doctor.fromJson(Map<String, dynamic> json) => Doctor(
-    id: json['id'],
-    name: json['name'],
-    specialty: json['specialty'],
-    qualification: json['qualification'],
-    distanceKm: json['distance_km']?.toDouble(),
-    phone: json['phone'],
-    email: json['email'],
-    hospital: json['hospital'],
-    address: json['address'],
-    availability: json['availability'],
-    verificationStatus: json['verification_status'],
+    id: json['id'] as String? ?? '',
+    name: json['name'] as String? ?? 'Doctor',
+    specialty: json['specialty'] as String? ?? 'General Physician',
+    qualification: json['qualification'] as String?,
+    distanceKm: (json['distance_km'] as num?)?.toDouble(),
+    phone: json['phone'] as String? ?? '',
+    email: json['email'] as String?,
+    hospital: json['hospital'] as String?,
+    address: json['address'] as String?,
+    availability: json['availability'] is Map
+        ? Map<String, dynamic>.from(json['availability'] as Map)
+        : null,
+    verificationStatus: json['verification_status'] as String? ?? 'verified',
   );
 }
+

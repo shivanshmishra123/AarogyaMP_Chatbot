@@ -4,6 +4,62 @@
 
 ---
 
+## 2026-10-26 — Fix: Doctor Directory Screen, GPS Location Detection, and Distance Filters
+
+**Who:** Person C (Mobile Frontend Track)
+
+**What was done:**
+- **Doctor Directory Access & Public Route Unblocking**:
+  - `app/lib/core/router/app_router.dart`: Added `/doctors`, `/doctors/map`, and `/emergency` to `isPublicRoute` in GoRouter redirect logic, enabling instant unauthenticated access to the verified doctor directory without forceful bounce to `/login`.
+  - `app/lib/features/auth/login_screen.dart`: Added direct access action buttons below the register form:
+    - `"सत्यापित डॉक्टर खोजें / Browse Doctors"` (`context.push(Routes.doctorList)`)
+    - `"अतिथि के रूप में आगे बढ़ें / Continue as Guest"` (`authNotifier.loginAsGuest() -> Routes.patientHome`)
+  - `app/lib/core/providers/auth_provider.dart`: Added `loginAsGuest()` method for instant guest exploration of the patient portal without phone/password requirements.
+- **Robust GPS Location & Bhopal Demo Fallback**:
+  - `app/lib/features/doctor_directory/doctor_list_screen.dart`:
+    - Fixed horizontal layout RenderFlex overflow on the top location card by wrapping the details column in `Expanded`.
+    - Hardened `_initLocation()`: Added graceful permission handling with 6s timeout, wrapped `ScaffoldMessenger` in `addPostFrameCallback` and `maybeOf(context)` to prevent crashes during widget mount/transitions.
+    - Added 1-tap "भोपाल संदर्भ स्थान (Bhopal Demo GPS)" button (`23.2599, 77.4126`) in the location card and empty states so users anywhere can instantly calculate realistic MP distances (e.g. `0.2 km`, `3.1 km`) and test `< 5 km` / `< 10 km` radius filters.
+    - Added interactive horizontal Distance Filter rail (`सभी दूरी / All`, `< 5 km`, `< 10 km`, `< 25 km`, `< 50 km`) with reset capability.
+    - Added resilient empty state with 1-tap "सभी डॉक्टर देखें / Show All Doctors" and "भोपाल संदर्भ स्थान सेट करें" so users are never trapped in empty query states.
+    - Added `AppBottomNav(currentIndex: 2)` enabling smooth bottom tab navigation across Home, Intake, Doctors, and Records.
+- **Model and API Parsing Resilience**:
+  - `app/lib/core/models/doctor_model.dart`: Hardened `Doctor.fromJson` against `null` or varying numeric types (`(json['distance_km'] as num?)?.toDouble()`, safe default strings and map cast for `availability`).
+  - `app/lib/core/services/doctor_service.dart`: Robustly handles `response.data` across String, `Map<dynamic, dynamic>`, and `Map<String, dynamic>`.
+- **Verification**:
+  - `app/test/m2_services_test.dart`: All 7 tests passed.
+  - `app/test/m3_ui_copy_and_resilience_test.dart`: All 7 tests passed (fixed GoRouter harness and metadata comment skipping).
+  - Flutter web application cleanly hot-restarted on `http://127.0.0.1:3000`.
+  - Backend running healthy on `http://127.0.0.1:8000/api/doctors`.
+
+---
+
+## 2026-10-26 — Fix: Urgency Check Connection Timeout & Local Ollama LLM Resilience Pass
+
+**Who:** Person B & Person C (AI Engine & App Resilience)
+
+**What was done:**
+- **Resolved Dio Connection Timeout on Assessment Submission (`vitals_entry_screen.dart` -> `POST /api/assessments`)**:
+  - **Root Cause**: Flutter `Dio` client in `app/lib/core/api/api_client.dart` was hardcoded to `connectTimeout: const Duration(seconds: 15)` and `receiveTimeout: const Duration(seconds: 30)`. When running on CPU via Docker Ollama, `llama3.2` inference takes 25–65s to evaluate the 590-token prompt and generate clinical guidance. At exactly 15.0s, Dio aborted the connection and displayed the red SnackBar error.
+  - **Client Timeout Adjustment**:
+    - Increased `connectTimeout: const Duration(seconds: 90)` in `buildBareDio()` and `_buildAuthenticatedDio()`.
+    - Increased `receiveTimeout: const Duration(seconds: 90)` and added `sendTimeout: const Duration(seconds: 60)`.
+  - **LLM Pipeline Hardening (`server/app/services/ai_symptom_engine.py`)**:
+    - Wrapped LLM chat completion in explicit `asyncio.wait_for(..., timeout=float(settings.LLM_TIMEOUT_SECONDS))` to guarantee the backend never hangs indefinitely.
+    - Set `max_tokens=500` (reduced from 1024) to constrain CPU inference time to needed output length.
+    - Enhanced `_strip_markdown_fences` to handle embedded markdown fences and auto-repair missing closing braces `}` on edge-case token boundaries.
+  - **Timeout Cascade Architecture**:
+    - Configured `LLM_TIMEOUT_SECONDS=75` in `server/app/config.py` and `server/.env`.
+    - Cascade order: LLM inference (~30–65s) -> Backend timeout (75s, triggers degraded `ai_status="unavailable"` / MODERATE risk fallback) -> Client HTTP timeout (90s). The client will never experience a connection abort or unhandled network exception.
+  - **Ollama In-Memory Model Residency**:
+    - Model `llama3.2` locked into RAM with `keep_alive: -1`, eliminating cold-start tensor loading delays.
+  - **Verification**:
+    - End-to-end `POST /api/assessments` succeeds synchronously (`HTTP 200 OK`, `ai_status="ok"`, risk level `MODERATE`, valid non-diagnostic conditions and recommendations).
+    - Degraded path verified: when LLM is unavailable, returns clean fallback response in under timeout limits.
+    - Pytest suite: 78 passed, 0 failed (`python -m pytest server/tests/ -v`).
+
+---
+
 ## 2026-10-26 — Frontend UI: Full Stitch UI Prototype Alignment & Deflection Resolution
 
 **Who:** Person C (Mobile Frontend Track)
@@ -263,7 +319,7 @@ Total test suite:                                  54/54 PASSED (100%)
 - ntfy topics follow pattern `aarogyamp-doctor-{id}` and `aarogyamp-patient-{id}` — Flutter app needs to subscribe to these instead of FCM.
 
 ---
-
+run 
 ## 2026-09-30 — Demo Run Preparation & Consultation History Routing Fix (Person C)
 
 **Who:** Person C (vedantdadhich) — Mobile App & Demo Prep

@@ -268,6 +268,67 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
+
+                // Quick Navigation Divider & Action Buttons
+                const Row(
+                  children: [
+                    Expanded(child: Divider()),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        'या / OR',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Expanded(child: Divider()),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Direct Doctor Directory Access
+                OutlinedButton.icon(
+                  onPressed: () => context.push(Routes.doctorList),
+                  icon: const Icon(Icons.medical_services_outlined, color: AppColors.primary),
+                  label: const Text('सत्यापित डॉक्टर खोजें / Browse Doctors'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                    side: const BorderSide(color: AppColors.primary, width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    textStyle: const TextStyle(
+                      fontFamily: 'NotoSans',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Instant Guest Access
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () {
+                      ref.read(authProvider.notifier).loginAsGuest();
+                      context.go(Routes.patientHome);
+                    },
+                    icon: const Icon(Icons.arrow_forward_rounded, size: 16, color: AppColors.secondary),
+                    label: const Text(
+                      'अतिथि के रूप में आगे बढ़ें / Continue as Guest',
+                      style: TextStyle(
+                        fontFamily: 'NotoSans',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.secondary,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

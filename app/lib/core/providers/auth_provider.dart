@@ -141,6 +141,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = newState;
   }
 
+  /// Instant guest session for quick evaluation without credentials
+  void loginAsGuest() {
+    state = const AuthState(
+      isAuthenticated: true,
+      role: UserRole.patient,
+      userId: 'guest_patient',
+      name: 'नागरिक (Guest User)',
+      accessToken: 'guest_token',
+      isDoctorVerified: false,
+    );
+  }
+
   /// Register new account. Role + name known at registration time.
   Future<void> register({
     required String name,

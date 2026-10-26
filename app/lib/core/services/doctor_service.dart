@@ -2,6 +2,7 @@
 // Live: GET /api/doctors?specialty=&lat=&lng=&radius_km=
 // Mirrors DoctorOut schema (FROZEN §11). Server-side: only verified doctors returned.
 
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/api_client.dart';
@@ -30,10 +31,22 @@ class DoctorService {
       Endpoints.listDoctors,
       queryParameters: params.isEmpty ? null : params,
     );
-    final data = response.data as Map<String, dynamic>;
-    return (data['doctors'] as List)
-        .map((d) => Doctor.fromJson(d as Map<String, dynamic>))
-        .toList();
+    final raw = response.data;
+    final Map<String, dynamic> data;
+    if (raw is String) {
+      data = json.decode(raw) as Map<String, dynamic>;
+    } else if (raw is Map) {
+      data = Map<String, dynamic>.from(raw);
+    } else {
+      data = <String, dynamic>{};
+    }
+    final doctorsList = (data['doctors'] as List?) ?? [];
+    return doctorsList.map((d) {
+      if (d is Map) {
+        return Doctor.fromJson(Map<String, dynamic>.from(d));
+      }
+      return Doctor.fromJson(d as Map<String, dynamic>);
+    }).toList();
   }
 
   /// Fallback when navigating to profile without a pre-loaded Doctor object.
