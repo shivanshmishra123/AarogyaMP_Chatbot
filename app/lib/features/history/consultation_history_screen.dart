@@ -226,7 +226,7 @@ class ConsultationHistoryScreen extends ConsumerWidget {
             ),
             icon: const Icon(Icons.person_search_rounded, size: 18),
             label: Text(
-              isHindi ? 'सत्यापित डॉक्टर खोजें' : 'Find Verified Doctors',
+              isHindi ? 'सत्यापित डॉक्टर खोजें' : 'Find Doctors',
               style: const TextStyle(fontFamily: 'NotoSans', fontSize: 13, fontWeight: FontWeight.w700),
             ),
           ),
