@@ -43,16 +43,12 @@ void main() {
         assessmentId: 'asm-test-01',
         isEmergency: false,
         riskLevel: 'MODERATE',
-        confidence: 'medium',
         possibleConditions: [
           const PossibleCondition(name: 'Viral upper respiratory illness', likelihood: 'high'),
         ],
-        supportingSymptoms: ['fever', 'cough'],
         recommendedSpecialty: 'General Physician',
         recommendationText: 'Consult a general physician. Rest and stay hydrated.',
         aiStatus: 'ok',
-        disclaimer: 'This is an AI-generated possible-conditions read, not a medical diagnosis.',
-        createdAt: DateTime.now(),
       );
 
       await tester.pumpWidget(
@@ -71,18 +67,14 @@ void main() {
 
   group('Milestone 3 — Emergency Separation & Degraded Path', () {
     testWidgets('AssessmentResult with isEmergency true shows redirecting overlay', (tester) async {
-      final emergencyResult = AssessmentResult(
+      final emergencyResult = const AssessmentResult(
         assessmentId: 'asm-emg-01',
         isEmergency: true,
         riskLevel: 'EMERGENCY',
-        confidence: null,
         possibleConditions: null,
-        supportingSymptoms: ['chest pain', 'shortness of breath'],
         recommendedSpecialty: null,
         recommendationText: 'Seek immediate emergency medical care.',
         aiStatus: 'skipped',
-        disclaimer: null,
-        createdAt: DateTime.now(),
       );
 
       await tester.pumpWidget(
@@ -97,18 +89,14 @@ void main() {
     });
 
     testWidgets('AssessmentResult with aiStatus=unavailable renders degraded path guidance', (tester) async {
-      final degradedResult = AssessmentResult(
+      final degradedResult = const AssessmentResult(
         assessmentId: 'asm-deg-01',
         isEmergency: false,
         riskLevel: 'MODERATE',
-        confidence: null,
         possibleConditions: null,
-        supportingSymptoms: [],
         recommendedSpecialty: 'General Physician',
         recommendationText: 'AI assessment is temporarily unavailable. Consult a general physician.',
         aiStatus: 'unavailable',
-        disclaimer: 'This is an AI-generated possible-conditions read, not a medical diagnosis.',
-        createdAt: DateTime.now(),
       );
 
       await tester.pumpWidget(
@@ -200,12 +188,12 @@ void main() {
 
   group('Milestone 3 — Defense-in-Depth & Queue Models', () {
     test('Unverified doctor is blocked by client-side verification check', () {
-      final unverifiedDoc = Doctor(
+      const unverifiedDoc = Doctor(
         id: 'doc-unv-01',
         name: 'Dr. Unverified Fake',
         specialty: 'Cardiologist',
         hospital: 'City Clinic',
-        isVerified: false,
+        verificationStatus: 'unverified',
         phone: '+919876543210',
         email: 'fake@example.com',
       );

@@ -1,100 +1,156 @@
-// AarogyaMP — Patient Home Screen (M1 — Person C)
+// AarogyaMP — Patient Home Screen (Stitch Prototype 5690353454197586822 Screen 3)
+// Full fidelity redesign matching official public health and AYUSH layout
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../widgets/shared_widgets.dart';
 
-class PatientHomeScreen extends ConsumerWidget {
+class PatientHomeScreen extends ConsumerStatefulWidget {
   const PatientHomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PatientHomeScreen> createState() => _PatientHomeScreenState();
+}
+
+class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 0.95, end: 1.08).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void disposenatural() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
-    final greeting = _greeting();
+    final patientName = (auth.name != null && auth.name!.isNotEmpty)
+        ? auth.name!
+        : 'रामेश्वर जी';
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: StitchHeader(
+        title: 'AarogyaMP',
+        subtitle: 'Home',
+        onProfileTap: () => _showProfileSheet(context, ref, auth),
+      ),
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            // ── Header ──────────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '$greeting,',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: Colors.white70,
-                                    ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                auth.name ?? 'Welcome',
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () => _showProfileSheet(context, ref, auth),
-                          child: CircleAvatar(
-                            backgroundColor: Colors.white24,
-                            radius: 24,
-                            child: Text(
-                              (auth.name ?? 'U').substring(0, 1).toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 18,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── 1. Emergency Warning Bar (Stitch Reference) ─────────────────
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFDAD6),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFF87171), width: 1),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x0A000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
                     ),
-                    const SizedBox(height: 20),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(
+                        color: AppColors.emergencyRed,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.emergency_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'आपातकाल / Emergency?',
+                            style: TextStyle(
+                              fontFamily: 'NotoSans',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF93000A),
+                            ),
+                          ),
+                          Text(
+                            'तुरंत 108 डायल करें • Dial 108 immediately',
+                            style: TextStyle(
+                              fontFamily: 'NotoSans',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF93000A),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
                     InkWell(
-                      onTap: () => context.push(Routes.symptomText),
-                      borderRadius: BorderRadius.circular(12),
+                      onTap: () async {
+                        final uri = Uri.parse('tel:108');
+                        // ignore: deprecated_member_use
+                        await launchUrl(uri);
+                      },
+                      borderRadius: BorderRadius.circular(8),
                       child: Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white24),
+                          color: AppColors.emergencyRed,
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Row(
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.favorite_rounded, color: Colors.white, size: 28),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'How are you feeling today?',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                            Icon(Icons.call, color: Colors.white, size: 14),
+                            SizedBox(width: 4),
+                            Text(
+                              '108',
+                              style: TextStyle(
+                                fontFamily: 'NotoSans',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
                               ),
                             ),
-                            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 16),
                           ],
                         ),
                       ),
@@ -102,359 +158,643 @@ class PatientHomeScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-            ),
 
-            // ── Start Assessment section ─────────────────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Start Symptom Assessment',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Describe what you\'re experiencing. Our AI will help assess your symptoms.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _InputMethodCard(
-                            icon: Icons.keyboard_alt_outlined,
-                            title: 'Type',
-                            subtitle: 'Describe in your own words',
-                            onTap: () => context.push(Routes.symptomText),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _InputMethodCard(
-                            icon: Icons.mic_rounded,
-                            title: 'Speak',
-                            subtitle: 'Voice input, any language',
-                            onTap: () => context.push(Routes.symptomVoice),
-                          ),
-                        ),
-                      ],
+              // ── 2. Patient Greeting & ABDM Health ID Header ────────────────
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.surfaceBorder),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x08172B2A),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
                     ),
                   ],
                 ),
-              ),
-            ),
-
-            // ── Quick actions ────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Text('Quick Actions', style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _QuickActionTile(
-                            icon: Icons.search_rounded,
-                            label: 'Find Doctor',
-                            color: AppColors.primary,
-                            onTap: () => context.push(Routes.doctorList),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _QuickActionTile(
-                            icon: Icons.history_rounded,
-                            label: 'History',
-                            color: AppColors.secondary,
-                            onTap: () => context.push(Routes.history),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _QuickActionTile(
-                            icon: Icons.emergency_rounded,
-                            label: 'Emergency',
-                            color: AppColors.emergencyRed,
-                            onTap: () => context.push(Routes.emergency),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // ── Info card ────────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
-                child: SectionCard(
-                  accentColor: AppColors.primary,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.info_outline_rounded, size: 18, color: AppColors.primary),
-                          const SizedBox(width: 8),
-                          Text(
-                            'How it works',
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
                                   color: AppColors.primary,
+                                  shape: BoxShape.circle,
                                 ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Text(
+                                'सक्रिय स्वास्थ्य मित्र • Active Health ID',
+                                style: TextStyle(
+                                  fontFamily: 'NotoSans',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'नमस्ते, $patientName',
+                            style: const TextStyle(
+                              fontFamily: 'NotoSans',
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Row(
+                            children: [
+                              Icon(Icons.location_on, color: AppColors.primary, size: 16),
+                              SizedBox(width: 4),
+                              Text(
+                                'भोपाल, म.प्र. (Bhopal, MP)',
+                                style: TextStyle(
+                                  fontFamily: 'NotoSans',
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      _HowItWorksStep(number: '1', text: 'Describe your symptoms (text or voice)'),
-                      _HowItWorksStep(number: '2', text: 'Enter your vitals (optional but helpful)'),
-                      _HowItWorksStep(number: '3', text: 'Get an AI risk assessment'),
-                      _HowItWorksStep(number: '4', text: 'Connect with a verified nearby doctor'),
-                      const SizedBox(height: 8),
-                      Text(
-                        'AI assessments are possible-conditions reads, not diagnoses. A doctor makes the final call.',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.onSurfaceVariant,
-                              fontStyle: FontStyle.italic,
+                    ),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundColor: AppColors.primaryLight,
+                          child: Text(
+                            patientName.substring(0, 1).toUpperCase(),
+                            style: const TextStyle(
+                              fontFamily: 'NotoSans',
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
                             ),
-                      ),
-                    ],
-                  ),
+                          ),
+                        ),
+                        const Positioned(
+                          bottom: -2,
+                          right: -2,
+                          child: CircleAvatar(
+                            radius: 10,
+                            backgroundColor: Colors.white,
+                            child: Icon(
+                              Icons.verified_rounded,
+                              color: AppColors.primary,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
+
+              // ── 3. Hero Card: Symptom Intake Main Interaction ───────────────
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.surfaceBorder),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x0C172B2A),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Public Health Support Pill
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainer,
+                        borderRadius: BorderRadius.circular(9999),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.spa_rounded, color: AppColors.primary, size: 15),
+                          SizedBox(width: 5),
+                          Text(
+                            'सार्वजनिक स्वास्थ्य सहायता • Public Health Support',
+                            style: TextStyle(
+                              fontFamily: 'NotoSans',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'आप कैसा महसूस कर रहे हैं?',
+                      style: TextStyle(
+                        fontFamily: 'NotoSans',
+                        fontSize: 21,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.onSurface,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'How are you feeling today?',
+                      style: TextStyle(
+                        fontFamily: 'NotoSans',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Accessible Glowing Voice Button (Stitch Spec: 112px round)
+                    AnimatedBuilder(
+                      animation: _pulseAnimation,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: _pulseAnimation.value,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withOpacity(0.28),
+                                  blurRadius: 24,
+                                  spreadRadius: 6,
+                                ),
+                              ],
+                            ),
+                            child: ElevatedButton(
+                              onPressed: () => context.push(Routes.symptomVoice),
+                              style: ElevatedButton.styleFrom(
+                                shape: const CircleBorder(),
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.all(28),
+                                elevation: 8,
+                                shadowColor: const Color(0x40000000),
+                              ),
+                              child: const Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.mic_rounded, size: 44, color: Colors.white),
+                                  SizedBox(height: 4),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _WaveBar(height: 8),
+                                      SizedBox(width: 2),
+                                      _WaveBar(height: 14),
+                                      SizedBox(width: 2),
+                                      _WaveBar(height: 8),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'लक्षण बोलकर बताएं',
+                      style: TextStyle(
+                        fontFamily: 'NotoSans',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Speak Symptoms (बुजुर्गों और सभी के लिए आसान)',
+                      style: TextStyle(
+                        fontFamily: 'NotoSans',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Secondary Text Intake Button
+                    OutlinedButton.icon(
+                      onPressed: () => context.push(Routes.symptomText),
+                      icon: const Icon(Icons.keyboard_outlined, size: 20, color: AppColors.primary),
+                      label: const Text(
+                        'टाइप करके लिखें / Type Symptoms',
+                        style: TextStyle(
+                          fontFamily: 'NotoSans',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 48),
+                        backgroundColor: AppColors.surfaceContainerLow,
+                        side: const BorderSide(color: AppColors.surfaceBorder),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── 4. Quick Entry Card for Vitals (Stitch Reference) ───────────
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.surfaceBorder),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x06172B2A),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.monitor_heart_rounded,
+                              color: AppColors.primary, size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'स्वास्थ्य जांच (वैकल्पिक)',
+                                style: TextStyle(
+                                  fontFamily: 'NotoSans',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.onSurface,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Enter Vitals (Optional) • BP, Sugar, SpO2, Temp',
+                                style: TextStyle(
+                                  fontFamily: 'NotoSans',
+                                  fontSize: 12,
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceContainer,
+                            borderRadius: BorderRadius.circular(9999),
+                          ),
+                          child: const Text(
+                            'वैकल्पिक',
+                            style: TextStyle(
+                              fontFamily: 'NotoSans',
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // 4-Column Vitals Metric Preview Grid
+                    Row(
+                      children: [
+                        _VitalPill(
+                          label: 'बीपी / BP',
+                          value: '120/80',
+                          unit: 'mmHg',
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        _VitalPill(
+                          label: 'शुगर / Sugar',
+                          value: '104',
+                          unit: 'mg/dL',
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        _VitalPill(
+                          label: 'ऑक्सीजन',
+                          value: '98%',
+                          unit: 'सामान्य',
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        _VitalPill(
+                          label: 'ताप / Temp',
+                          value: '98.4°',
+                          unit: '°F',
+                          color: AppColors.primary,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            '💡 अभी भरें या बाद में / Enter now or update later',
+                            style: TextStyle(
+                              fontFamily: 'NotoSans',
+                              fontSize: 11,
+                              fontStyle: FontStyle.italic,
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () => context.push(Routes.vitals),
+                          icon: const Icon(Icons.edit_outlined, size: 14),
+                          label: const Text(
+                            'दर्ज करें / Update',
+                            style: TextStyle(
+                              fontFamily: 'NotoSans',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            minimumSize: Size.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── 5. Quick Health Action Links ───────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => context.push(Routes.doctorList),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.surfaceBorder),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.medical_services_outlined, color: AppColors.primary, size: 24),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'डॉक्टर खोजें',
+                                      style: TextStyle(
+                                        fontFamily: 'NotoSans',
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.onSurface,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Find Verified Doctors',
+                                      style: TextStyle(
+                                        fontFamily: 'NotoSans',
+                                        fontSize: 11,
+                                        color: AppColors.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => context.push(Routes.history),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.surfaceBorder),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.description_outlined, color: AppColors.secondary, size: 24),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'इतिहास',
+                                      style: TextStyle(
+                                        fontFamily: 'NotoSans',
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.onSurface,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Consultation Records',
+                                      style: TextStyle(
+                                        fontFamily: 'NotoSans',
+                                        fontSize: 11,
+                                        color: AppColors.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── 6. Safety & Non-Diagnostic Disclaimer Note ────────────────
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.surfaceBorder),
+                ),
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline_rounded, color: AppColors.primary, size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'AarogyaMP provides AI-generated possible-conditions triage reads, not confirmed diagnoses. Registered doctors make the final medical call.',
+                        style: TextStyle(
+                          fontFamily: 'NotoSans',
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                          color: AppColors.onSurfaceVariant,
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: AppBottomNav(
         currentIndex: 0,
         onTap: (i) {
-          if (i == 1) context.push(Routes.doctorList);
-          if (i == 2) {
-            final lastId = auth.lastConsultationId;
-            final docName = auth.lastConsultationDoctorName ?? 'Doctor';
-            if (lastId != null && lastId.isNotEmpty) {
-              context.push(
-                Routes.chat.replaceAll(':consultationId', lastId),
-                extra: {'doctorName': docName},
-              );
-            } else {
-              _showNoActiveConsultationSheet(context);
-            }
-          }
+          if (i == 1) context.push(Routes.symptomVoice);
+          if (i == 2) context.push(Routes.doctorList);
           if (i == 3) context.push(Routes.history);
         },
       ),
     );
   }
 
-  String _greeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  }
-
-  void _showNoActiveConsultationSheet(BuildContext context) {
+  void _showProfileSheet(BuildContext context, WidgetRef ref, dynamic auth) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryLight,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.chat_bubble_outline_rounded,
-                  color: AppColors.primary,
-                  size: 30,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'No Active Consultation',
-                style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Consultation chats are started directly with a verified doctor. Choose a doctor from our directory to start a chat.',
-                textAlign: TextAlign.center,
-                style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.onSurfaceVariant,
-                      height: 1.4,
-                    ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Cancel'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        context.push(Routes.doctorList);
-                      },
-                      icon: const Icon(Icons.person_search_rounded, size: 18),
-                      label: const Text('Find Doctors'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showProfileSheet(BuildContext context, WidgetRef ref, AuthState auth) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceBorder,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-              CircleAvatar(
-                radius: 36,
-                backgroundColor: AppColors.primaryLight,
-                child: Text(
-                  (auth.name ?? 'P').substring(0, 1).toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                auth.name ?? 'Patient',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Role: Patient',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.onSurfaceVariant,
-                    ),
-              ),
-              const SizedBox(height: 24),
-              const Divider(),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  Navigator.of(ctx).pop();
-                  await ref.read(authProvider.notifier).logout();
-                  if (context.mounted) {
-                    context.go(Routes.login);
-                  }
-                },
-                icon: const Icon(Icons.logout_rounded, color: Colors.white),
-                label: const Text('Log Out'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.emergencyRed,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _InputMethodCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _InputMethodCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.surfaceBorder),
-          boxShadow: const [
-            BoxShadow(color: Color(0x0D172B2A), blurRadius: 4, offset: Offset(0, 2)),
-          ],
-        ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: AppColors.primary, size: 24),
-            ),
-            const SizedBox(height: 12),
-            Text(title, style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.onSurfaceVariant,
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppColors.primary,
+                  radius: 24,
+                  child: Text(
+                    (auth.name ?? 'U').substring(0, 1).toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                    ),
                   ),
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      auth.name ?? 'Patient',
+                      style: const TextStyle(
+                        fontFamily: 'NotoSans',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.onSurface,
+                      ),
+                    ),
+                    Text(
+                      auth.phone ?? '',
+                      style: const TextStyle(
+                        fontFamily: 'NotoSans',
+                        fontSize: 13,
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                ref.read(authProvider.notifier).logout();
+              },
+              icon: const Icon(Icons.logout_rounded, color: AppColors.emergencyRed),
+              label: const Text(
+                'Log Out',
+                style: TextStyle(
+                  color: AppColors.emergencyRed,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 48),
+                side: const BorderSide(color: Color(0xFFFCA5A5)),
+              ),
             ),
           ],
         ),
@@ -463,87 +803,83 @@ class _InputMethodCard extends StatelessWidget {
   }
 }
 
-class _QuickActionTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
+class _WaveBar extends StatelessWidget {
+  final double height;
+  const _WaveBar({required this.height});
 
-  const _QuickActionTile({
-    required this.icon,
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 3,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );
+  }
+}
+
+class _VitalPill extends StatelessWidget {
+  final String label;
+  final String value;
+  final String unit;
+  final Color color;
+
+  const _VitalPill({
     required this.label,
+    required this.value,
+    required this.unit,
     required this.color,
-    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
+    return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.surfaceContainerLow,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.surfaceBorder),
         ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 6),
             Text(
               label,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
+              style: const TextStyle(
+                fontFamily: 'NotoSans',
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: AppColors.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: const TextStyle(
+                fontFamily: 'NotoSans',
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.onSurface,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              unit,
+              style: TextStyle(
+                fontFamily: 'NotoSans',
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+                color: color.withOpacity(0.85),
+              ),
               textAlign: TextAlign.center,
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _HowItWorksStep extends StatelessWidget {
-  final String number;
-  final String text;
-
-  const _HowItWorksStep({required this.number, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 22,
-            height: 22,
-            decoration: const BoxDecoration(
-              color: AppColors.primaryLight,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                number,
-                style: const TextStyle(
-                  fontFamily: 'NotoSans',
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ),
-        ],
       ),
     );
   }

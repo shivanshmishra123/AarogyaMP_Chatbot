@@ -134,26 +134,141 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Find a Doctor'),
-        leading: BackButton(onPressed: () => context.pop()),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.map_outlined),
-            tooltip: 'Map view',
-            onPressed: () => context.push(Routes.doctorMap),
-          ),
-        ],
+      appBar: StitchHeader(
+        title: 'AarogyaMP',
+        subtitle: 'Find Doctors',
+        showBack: true,
+        onBackTap: () => context.pop(),
       ),
       body: SafeArea(
         child: Column(
           children: [
+            // ── 1. Top Geo-Location & Area Card (Stitch Reference) ───────────
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.surfaceBorder),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x06000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.location_on, color: AppColors.primary, size: 20),
+                          SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'वर्तमान स्थान / Current Area',
+                                style: TextStyle(
+                                  fontFamily: 'NotoSans',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                              ),
+                              Text(
+                                'अरेरा कॉलोनी, भोपाल (Arera Colony)',
+                                style: TextStyle(
+                                  fontFamily: 'NotoSans',
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          _initLocation();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('GPS स्थान अपडेट किया जा रहा है... (Updating GPS)'),
+                              duration: Duration(seconds: 1),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.my_location_rounded, size: 14),
+                        label: const Text('जीपीएस / GPS'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.surfaceContainer,
+                          foregroundColor: AppColors.onSurface,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          textStyle: const TextStyle(
+                            fontFamily: 'NotoSans',
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.search, size: 16, color: AppColors.onSurfaceVariant),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '462016 - भोपाल दक्षिण (Bhopal South)',
+                            style: TextStyle(
+                              fontFamily: 'NotoSans',
+                              fontSize: 12,
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          'बदलें',
+                          style: TextStyle(
+                            fontFamily: 'NotoSans',
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             // Location denied banner (live mode only)
             if (!_useMocks && _locationDenied)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                color: const Color(0xFFFFFBEB),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFBEB),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                ),
                 child: Row(
                   children: [
                     const Icon(Icons.location_off_outlined,
@@ -161,7 +276,7 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Location unavailable — showing all doctors. Enable location for distance-sorted results.',
+                        'स्थान अनुपलब्ध — सभी डॉक्टर दिखाए जा रहे हैं (Showing all doctors)',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: const Color(0xFF92400E),
                             ),
@@ -173,62 +288,106 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                         _initLocation();
                       },
                       style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                      child: const Text('Retry',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF059669))),
+                        padding: EdgeInsets.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text('पुनः प्रयास',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF059669))),
                     ),
                   ],
                 ),
               ),
 
-            // Specialty filter chips
+            // ── 2. Specialty & Filters Horizontal Rail (Stitch Reference) ────
             Container(
-              color: AppColors.surface,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: SizedBox(
-                height: 38,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _specialties.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, i) {
-                    final s = _specialties[i];
-                    final selected = _selectedSpecialty == s ||
-                        (s == 'All' && _selectedSpecialty == null);
-                    return FilterChip(
-                      label: Text(s),
-                      selected: selected,
-                      onSelected: (_) {
-                        setState(() {
-                          _selectedSpecialty = s == 'All' ? null : s;
-                          _loadDoctors();
-                        });
+              color: Colors.transparent,
+              padding: const EdgeInsets.only(top: 4, bottom: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'विशेषज्ञता एवं फ़िल्टर / Specialty & Filters',
+                          style: TextStyle(
+                            fontFamily: 'NotoSans',
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            '100% म.प्र. शासन सत्यापित',
+                            style: TextStyle(
+                              fontFamily: 'NotoSans',
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: 36,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _specialties.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (context, i) {
+                        final s = _specialties[i];
+                        final selected = _selectedSpecialty == s ||
+                            (s == 'All' && _selectedSpecialty == null);
+                        final label = s == 'All'
+                            ? 'सभी / All'
+                            : (s == 'General Physician'
+                                ? 'General Physician (एमबीबीएस)'
+                                : s);
+                        return FilterChip(
+                          label: Text(label),
+                          selected: selected,
+                          onSelected: (_) {
+                            setState(() {
+                              _selectedSpecialty = s == 'All' ? null : s;
+                              _loadDoctors();
+                            });
+                          },
+                          backgroundColor: Colors.white,
+                          selectedColor: AppColors.primary,
+                          checkmarkColor: Colors.white,
+                          labelStyle: TextStyle(
+                            fontFamily: 'NotoSans',
+                            fontSize: 12,
+                            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                            color: selected ? Colors.white : AppColors.onSurface,
+                          ),
+                          side: BorderSide(
+                            color: selected ? AppColors.primary : AppColors.surfaceBorder,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(9999),
+                          ),
+                        );
                       },
-                      selectedColor: AppColors.primaryLight,
-                      checkmarkColor: AppColors.primary,
-                      labelStyle: TextStyle(
-                        fontFamily: 'NotoSans',
-                        fontSize: 13,
-                        fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                        color: selected
-                            ? AppColors.primary
-                            : AppColors.onSurfaceVariant,
-                      ),
-                      side: BorderSide(
-                        color: selected
-                            ? AppColors.primary
-                            : AppColors.surfaceBorder,
-                      ),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const Divider(height: 1),
 
-            // Doctor list
+            // ── 3. Doctor List with Stitch Cards ─────────────────────────────
             Expanded(
               child: FutureBuilder<List<Doctor>>(
                 future: _doctorsFuture,
@@ -249,7 +408,7 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                                 size: 48, color: AppColors.outlineVariant),
                             const SizedBox(height: 12),
                             Text(
-                              'Could not load doctors.\nCheck your connection and try again.',
+                              'डॉक्टर सूची लोड नहीं हो सकी (Could not load doctors).\nCheck your connection and try again.',
                               style: Theme.of(context)
                                   .textTheme
                                   .bodyMedium
@@ -262,7 +421,7 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                             OutlinedButton.icon(
                               onPressed: () => setState(() => _loadDoctors()),
                               icon: const Icon(Icons.refresh_rounded),
-                              label: const Text('Retry'),
+                              label: const Text('पुनः प्रयास / Retry'),
                             ),
                           ],
                         ),
@@ -279,7 +438,7 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                               size: 48, color: AppColors.outlineVariant),
                           const SizedBox(height: 12),
                           Text(
-                            'No verified doctors found\nfor this specialty.',
+                            'कोई सत्यापित डॉक्टर उपलब्ध नहीं है\n(No verified doctors found).',
                             style: Theme.of(context)
                                 .textTheme
                                 .bodyMedium
@@ -293,7 +452,7 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                     );
                   }
                   return ListView.separated(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
                     itemCount: doctors.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, i) => _DoctorCard(
@@ -310,10 +469,29 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
           ],
         ),
       ),
+      // Floating Map View Button (Stitch Reference)
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.push(Routes.doctorMap),
+        backgroundColor: AppColors.onSurface,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        icon: const Icon(Icons.map_outlined, color: AppColors.primaryLight),
+        label: const Text(
+          'नक्शा देखें / Map View',
+          style: TextStyle(
+            fontFamily: 'NotoSans',
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
     );
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// _DoctorCard — Stitch Screen 9 Pixel-Perfect Implementation
+// ─────────────────────────────────────────────────────────────────────────────
 class _DoctorCard extends StatelessWidget {
   final Doctor doctor;
   final VoidCallback onTap;
@@ -324,118 +502,239 @@ class _DoctorCard extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!doctor.isVerified) return const SizedBox.shrink();
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.surfaceBorder),
-          boxShadow: const [
-            BoxShadow(
-                color: Color(0x0D172B2A), blurRadius: 4, offset: Offset(0, 2)),
-          ],
-        ),
+    final isAyush = doctor.specialty.toLowerCase().contains('ayur') ||
+        doctor.specialty.toLowerCase().contains('ayush');
+    final accentColor = isAyush ? AppColors.tertiary : AppColors.primary;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.surfaceBorder),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08172B2A),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              width: 54,
-              height: 54,
-              decoration: const BoxDecoration(
-                color: AppColors.primaryLight,
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  doctor.name.replaceAll('Dr. ', '').substring(0, 1),
-                  style: const TextStyle(
-                    fontFamily: 'NotoSans',
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
+            // Left Accent Border Bar (Stitch Spec: 5px solid clinical color)
+            Container(width: 5, color: accentColor),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header: Avatar + Name + MP-Govt Verified Badge
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundColor: accentColor.withOpacity(0.12),
+                          child: Text(
+                            doctor.name.replaceAll('Dr. ', '').substring(0, 1),
+                            style: TextStyle(
+                              fontFamily: 'NotoSans',
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: accentColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      doctor.name,
+                                      style: const TextStyle(
+                                        fontFamily: 'NotoSans',
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.onSurface,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryLight,
+                                      borderRadius: BorderRadius.circular(9999),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.verified, size: 12, color: AppColors.primary),
+                                        SizedBox(width: 3),
+                                        Text(
+                                          'सत्यापित',
+                                          style: TextStyle(
+                                            fontFamily: 'NotoSans',
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.primaryDark,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${doctor.specialty} ${doctor.qualification != null ? "(${doctor.qualification})" : ""}',
+                                style: TextStyle(
+                                  fontFamily: 'NotoSans',
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: accentColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Facility & Distance Box
+                    if (doctor.hospital != null || doctor.distanceKm != null)
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.apartment_rounded, size: 15, color: AppColors.primary),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                doctor.hospital ?? 'शासकीय स्वास्थ्य केंद्र',
+                                style: const TextStyle(
+                                  fontFamily: 'NotoSans',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.onSurface,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (doctor.distanceKm != null) ...[
+                              const SizedBox(width: 6),
+                              Text(
+                                '${doctor.distanceKm!.toStringAsFixed(1)} km दूर',
+                                style: const TextStyle(
+                                  fontFamily: 'NotoSans',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.secondary,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+
+                    // OPD Status Line
+                    const Row(
+                      children: [
+                        Icon(Icons.circle, size: 8, color: AppColors.primary),
+                        SizedBox(width: 6),
+                        Text(
+                          'आज उपलब्ध (Open Today)',
+                          style: TextStyle(
+                            fontFamily: 'NotoSans',
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        Spacer(),
+                        Text(
+                          'OPD: 10:00 AM - 2:00 PM',
+                          style: TextStyle(
+                            fontFamily: 'NotoSans',
+                            fontSize: 11,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Dual High-Affordance Action Buttons (Stitch Spec: 44px min height)
+                    Row(
+                      children: [
+                        if (doctor.phone.isNotEmpty) ...[
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                final uri = Uri.parse('tel:${doctor.phone}');
+                                // ignore: deprecated_member_use
+                                await launchUrl(uri);
+                              },
+                              icon: const Icon(Icons.call, size: 15),
+                              label: const Text('कॉल करें / Call'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: accentColor,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                textStyle: const TextStyle(
+                                  fontFamily: 'NotoSans',
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: onTap,
+                            icon: const Icon(Icons.assignment_ind_outlined, size: 15),
+                            label: const Text('प्रोफ़ाइल / Profile'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.onSurface,
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              side: const BorderSide(color: AppColors.surfaceBorder),
+                              textStyle: const TextStyle(
+                                fontFamily: 'NotoSans',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(doctor.name,
-                            style: Theme.of(context).textTheme.titleSmall),
-                      ),
-                      const VerifiedBadge(),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    doctor.specialty,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  if (doctor.qualification != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      doctor.qualification!,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                    ),
-                  ],
-                  if (doctor.hospital != null) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.local_hospital_outlined,
-                            size: 13, color: AppColors.onSurfaceVariant),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            doctor.hospital!,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(
-                                  color: AppColors.onSurfaceVariant,
-                                ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  if (doctor.distanceKm != null) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on_outlined,
-                            size: 13, color: AppColors.onSurfaceVariant),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${doctor.distanceKm!.toStringAsFixed(1)} km away',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(
-                                color: AppColors.onSurfaceVariant,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded,
-                color: AppColors.onSurfaceVariant),
           ],
         ),
       ),
