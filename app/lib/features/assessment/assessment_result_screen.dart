@@ -160,7 +160,7 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: riskColor.withOpacity(0.12),
+                            color: riskColor.withValues(alpha: 0.12),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(Icons.schedule_rounded, color: riskColor, size: 24),
@@ -257,9 +257,9 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
+                                const Text(
                                   'जोखिम स्तर का आधार:',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontFamily: 'NotoSans',
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
@@ -421,7 +421,7 @@ class _AssessmentResultScreenState extends State<AssessmentResultScreen> {
                         children: [
                           Icon(Icons.science_outlined, color: AppColors.outline, size: 20),
                           SizedBox(width: 8),
-                          const Text(
+                          Text(
                             'Possible Causes',
                             style: TextStyle(
                               fontFamily: 'NotoSans',
@@ -798,7 +798,7 @@ class _GaugePill extends StatelessWidget {
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: color.withOpacity(0.35),
+                    color: color.withValues(alpha: 0.35),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -825,7 +825,7 @@ class _GaugePill extends StatelessWidget {
                 fontFamily: 'NotoSans',
                 fontSize: 9,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                color: isActive ? Colors.white70 : AppColors.onSurfaceVariant.withOpacity(0.8),
+                color: isActive ? Colors.white70 : AppColors.onSurfaceVariant.withValues(alpha: 0.8),
               ),
               textAlign: TextAlign.center,
             ),

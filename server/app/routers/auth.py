@@ -5,6 +5,7 @@ Person A owns this file.
 Endpoints:
   POST /api/auth/register
   POST /api/auth/login
+  GET  /api/auth/me      — validate token + return current user profile
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -12,12 +13,13 @@ from sqlalchemy.orm import Session
 from app.auth import (
     create_access_token,
     create_refresh_token,
+    get_current_user,
     hash_password,
     verify_password,
 )
 from app.database import get_db
 from app.models import Doctor, Patient
-from app.schemas import AuthResponse, LoginRequest, RegisterRequest
+from app.schemas import AuthResponse, LoginRequest, RegisterRequest, UserProfileResponse
 
 router = APIRouter()
 
@@ -119,3 +121,29 @@ async def login(req: LoginRequest, db: Session = Depends(get_db)):
         detail="Invalid phone number or password",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+
+@router.get("/me", response_model=UserProfileResponse)
+async def get_me(current_user: dict = Depends(get_current_user)):
+    """
+    Return the profile of the currently authenticated user.
+    Works for both patient and doctor roles.
+    Doctors additionally receive specialty, qualification, verification_status.
+    """
+    user_obj = current_user.get("user")
+    role = current_user["role"]
+
+    profile = UserProfileResponse(
+        user_id=current_user["user_id"],
+        role=role,
+        name=current_user["name"],
+        phone=current_user["phone"],
+        email=getattr(user_obj, "email", None),
+    )
+
+    if role == "doctor" and user_obj is not None:
+        profile.specialty = getattr(user_obj, "specialty", None)
+        profile.qualification = getattr(user_obj, "qualification", None)
+        profile.verification_status = getattr(user_obj, "verification_status", None)
+
+    return profile

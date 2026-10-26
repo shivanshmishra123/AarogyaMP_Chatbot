@@ -287,10 +287,10 @@ class _SymptomVoiceInputScreenState extends State<SymptomVoiceInputScreen>
       ),
       child: Row(
         children: [
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'स्वास्थ्य सहायक / VOICE TRIAGE',
                   style: TextStyle(
@@ -330,7 +330,7 @@ class _SymptomVoiceInputScreenState extends State<SymptomVoiceInputScreen>
             decoration: BoxDecoration(
               color: AppColors.primaryLight,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
             ),
             child: const Icon(Icons.medical_services_rounded, color: AppColors.primary, size: 30),
           ),
@@ -372,7 +372,7 @@ class _SymptomVoiceInputScreenState extends State<SymptomVoiceInputScreen>
                         boxShadow: [
                           BoxShadow(
                             color: (_isListening ? const Color(0xFFBA1A1A) : AppColors.primary)
-                                .withOpacity(0.35),
+                                .withValues(alpha: 0.35),
                             blurRadius: _isListening ? 24 : 12,
                             spreadRadius: _isListening ? 4 : 2,
                           ),
@@ -453,7 +453,7 @@ class _SymptomVoiceInputScreenState extends State<SymptomVoiceInputScreen>
                   height: _isListening ? heights[index] : (heights[index] * 0.4).clamp(6.0, 36.0),
                   margin: const EdgeInsets.symmetric(horizontal: 2.5),
                   decoration: BoxDecoration(
-                    color: _isListening ? color : color.withOpacity(0.3),
+                    color: _isListening ? color : color.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 );
@@ -536,10 +536,10 @@ class _SymptomVoiceInputScreenState extends State<SymptomVoiceInputScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
                   Icon(Icons.edit_note_rounded, color: AppColors.primary, size: 20),
                   SizedBox(width: 6),
@@ -555,7 +555,7 @@ class _SymptomVoiceInputScreenState extends State<SymptomVoiceInputScreen>
                 ],
               ),
               Row(
-                children: const [
+                children: [
                   Icon(Icons.cloud_done_rounded, color: AppColors.tertiary, size: 14),
                   SizedBox(width: 4),
                   Text(
@@ -650,7 +650,7 @@ class _SymptomVoiceInputScreenState extends State<SymptomVoiceInputScreen>
                   decoration: BoxDecoration(
                     color: AppColors.primaryLight,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -686,9 +686,9 @@ class _SymptomVoiceInputScreenState extends State<SymptomVoiceInputScreen>
         color: const Color(0xFFDCF2F0),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
+      child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Icon(Icons.verified_user_rounded, color: AppColors.primary, size: 18),
           SizedBox(width: 8),
           Expanded(
@@ -794,9 +794,9 @@ class _SymptomVoiceInputScreenState extends State<SymptomVoiceInputScreen>
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               elevation: 4,
             ),
-            child: Row(
+            child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
+              children: [
                 Text(
                   'पुष्टि करें और आगे बढ़ें',
                   style: TextStyle(

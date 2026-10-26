@@ -494,6 +494,23 @@ class _LiveQueueCard extends StatelessWidget {
                   ?.copyWith(color: AppColors.onSurfaceVariant),
               maxLines: 2,
               overflow: TextOverflow.ellipsis),
+          if (item.vitals != null && item.vitals!.summaryText.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                item.vitals!.summaryText,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
           Row(
             children: [
@@ -580,7 +597,7 @@ class PatientDetailScreen extends ConsumerWidget {
       riskLevel: item.riskLevel,
       timeLabel: item.timeAgoText,
       symptoms: item.symptomSummary,
-      vitals: null, // not in PatientQueueItem (M3 TODO: add if GET /patients/{id} is wired)
+      vitals: item.vitals?.summaryText, // Populated from PatientQueueItem vitals
       possibleConditions: null,
       recommendation: null,
       onChat: () => context.push(

@@ -37,13 +37,14 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user, get_user_by_token, require_doctor, require_patient
 from app.database import SessionLocal, get_db
-from app.models import AIAssessment, ChatMessage, Consultation, Doctor, Patient, SymptomReport
+from app.models import AIAssessment, ChatMessage, Consultation, Doctor, Patient, SymptomReport, Vitals
 from app.schemas import (
     ChatMessageListResponse,
     ChatMessageOut,
     ConsultationRequest,
     ConsultationResponse,
     PatientQueueItem,
+    VitalsOut,
     WsIncomingMessage,
 )
 from app.services.notifications import (
@@ -321,6 +322,24 @@ async def get_doctor_queue(
                     risk_level = assessment.risk_level
                     is_emergency = assessment.is_emergency
 
+        # Fetch most recent vitals for this symptom report (if any)
+        vitals_out: Optional[VitalsOut] = None
+        if consult.symptom_report_id:
+            vitals_row = (
+                db.query(Vitals)
+                .filter(Vitals.symptom_report_id == consult.symptom_report_id)
+                .order_by(Vitals.timestamp.desc())
+                .first()
+            )
+            if vitals_row:
+                vitals_out = VitalsOut(
+                    temperature_f=vitals_row.temperature_f,
+                    heart_rate_bpm=vitals_row.heart_rate_bpm,
+                    systolic_bp=vitals_row.systolic_bp,
+                    diastolic_bp=vitals_row.diastolic_bp,
+                    spo2_pct=vitals_row.spo2_pct,
+                )
+
         queue_items.append(
             PatientQueueItem(
                 consultation_id=consult.id,
@@ -329,6 +348,7 @@ async def get_doctor_queue(
                 risk_level=risk_level,
                 is_emergency=is_emergency,
                 started_at=consult.started_at,
+                vitals=vitals_out,
             )
         )
 

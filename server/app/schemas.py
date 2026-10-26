@@ -38,6 +38,19 @@ class AuthResponse(BaseModel):
     role: Literal["patient", "doctor"]
 
 
+class UserProfileResponse(BaseModel):
+    """GET /api/auth/me — returns current authenticated user's profile."""
+    user_id: str
+    role: Literal["patient", "doctor"]
+    name: str
+    phone: str
+    email: Optional[str] = None
+    # Doctor-only fields
+    specialty: Optional[str] = None
+    qualification: Optional[str] = None
+    verification_status: Optional[str] = None  # None for patients
+
+
 # ── Vitals ────────────────────────────────────────────────────
 
 class VitalsIn(BaseModel):
@@ -113,6 +126,9 @@ class DoctorOut(BaseModel):
     availability: Optional[dict] = None
     verification_status: str           # always "verified" in results — enforced server-side
 
+# Alias for single-doctor GET /api/doctors/{id}
+DoctorDetailResponse = DoctorOut
+
 class DoctorListResponse(BaseModel):
     doctors: List[DoctorOut]
 
@@ -150,6 +166,15 @@ class WsIncomingMessage(BaseModel):
 
 # ── Doctor Queue (doctor role) ────────────────────────────────
 
+class VitalsOut(BaseModel):
+    """Subset of vitals shown to the doctor in the queue and patient detail."""
+    temperature_f: Optional[float] = None
+    heart_rate_bpm: Optional[int] = None
+    systolic_bp: Optional[int] = None
+    diastolic_bp: Optional[int] = None
+    spo2_pct: Optional[int] = None
+
+
 class PatientQueueItem(BaseModel):
     consultation_id: str
     patient_name: str
@@ -157,6 +182,7 @@ class PatientQueueItem(BaseModel):
     risk_level: Optional[str] = None
     is_emergency: bool = False
     started_at: datetime
+    vitals: Optional[VitalsOut] = None  # Added M4: doctor sees patient vitals in queue
 
 
 # ── Admin ─────────────────────────────────────────────────────

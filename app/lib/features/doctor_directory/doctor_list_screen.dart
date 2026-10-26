@@ -719,7 +719,7 @@ class _DoctorCard extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           radius: 24,
-                          backgroundColor: accentColor.withOpacity(0.12),
+                          backgroundColor: accentColor.withValues(alpha: 0.12),
                           child: Text(
                             doctor.name.replaceAll('Dr. ', '').substring(0, 1),
                             style: TextStyle(
@@ -985,6 +985,7 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
 
     // No existing consultation: create consultation on server, then navigate
     setState(() => _isCreatingConsult = true);
+    final nav = context; // capture context before async gap
     try {
       final auth = ref.read(authProvider);
       final symptomReportId = auth.lastSymptomReportId; // may be null (general consult)
@@ -1000,14 +1001,14 @@ class _DoctorProfileScreenState extends ConsumerState<DoctorProfileScreen> {
             doctorName: doc.name,
             specialty: doc.specialty,
           );
-      if (!mounted) return;
-      context.push(
+      if (!nav.mounted) return;
+      nav.push(
         Routes.chat.replaceAll(':consultationId', consultationId),
         extra: {'doctorName': doc.name, 'doctorId': doc.id},
       );
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!nav.mounted) return;
+      ScaffoldMessenger.of(nav).showSnackBar(
         SnackBar(
           content: Text('Could not start consultation: ${_shortError(e)}'),
           backgroundColor: AppColors.riskHighBg,

@@ -218,7 +218,7 @@ class _EmergencyScreenState extends State<EmergencyScreen>
       height: 64,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFE7FEFC).withOpacity(0.95),
+        color: const Color(0xFFE7FEFC).withValues(alpha: 0.95),
         border: const Border(bottom: BorderSide(color: Color(0xFFDDE7E4))),
         boxShadow: const [
           BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2)),
@@ -278,7 +278,7 @@ class _EmergencyScreenState extends State<EmergencyScreen>
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.emergencyRed.withOpacity(0.35),
+                      color: AppColors.emergencyRed.withValues(alpha: 0.35),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
@@ -413,7 +413,7 @@ class _EmergencyScreenState extends State<EmergencyScreen>
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFBA1A1A).withOpacity(0.4),
+              color: const Color(0xFFBA1A1A).withValues(alpha: 0.4),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -458,7 +458,7 @@ class _EmergencyScreenState extends State<EmergencyScreen>
                   : 'Do not delay. Proceed to emergency care or call 108 now.',
               style: TextStyle(
                 fontFamily: 'NotoSans',
-                color: Colors.white.withOpacity(0.92),
+                color: Colors.white.withValues(alpha: 0.92),
                 fontSize: 13,
               ),
             ),
@@ -534,7 +534,7 @@ class _EmergencyScreenState extends State<EmergencyScreen>
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFBA1A1A).withOpacity(0.4),
+                    color: const Color(0xFFBA1A1A).withValues(alpha: 0.4),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -546,7 +546,7 @@ class _EmergencyScreenState extends State<EmergencyScreen>
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.call_rounded, color: Colors.white, size: 28),
@@ -562,7 +562,7 @@ class _EmergencyScreenState extends State<EmergencyScreen>
                             fontFamily: 'NotoSans',
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -581,7 +581,7 @@ class _EmergencyScreenState extends State<EmergencyScreen>
                           style: TextStyle(
                             fontFamily: 'NotoSans',
                             fontSize: 12,
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                           ),
                         ),
                       ],

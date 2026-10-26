@@ -41,12 +41,12 @@ void main() {
     });
 
     testWidgets('AssessmentResultScreen renders DisclaimerBanner on non-emergency', (tester) async {
-      final mockResult = AssessmentResult(
+      const mockResult = AssessmentResult(
         assessmentId: 'asm-test-01',
         isEmergency: false,
         riskLevel: 'MODERATE',
         possibleConditions: [
-          const PossibleCondition(name: 'Viral upper respiratory illness', likelihood: 'high'),
+          PossibleCondition(name: 'Viral upper respiratory illness', likelihood: 'high'),
         ],
         recommendedSpecialty: 'General Physician',
         recommendationText: 'Consult a general physician. Rest and stay hydrated.',
@@ -54,7 +54,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: AssessmentResultScreen(result: mockResult),
         ),
       );
@@ -69,7 +69,7 @@ void main() {
 
   group('Milestone 3 — Emergency Separation & Degraded Path', () {
     testWidgets('AssessmentResult with isEmergency true shows redirecting overlay', (tester) async {
-      final emergencyResult = const AssessmentResult(
+      const emergencyResult = AssessmentResult(
         assessmentId: 'asm-emg-01',
         isEmergency: true,
         riskLevel: 'EMERGENCY',
@@ -84,7 +84,7 @@ void main() {
         routes: [
           GoRoute(
             path: '/result',
-            builder: (_, __) => AssessmentResultScreen(result: emergencyResult),
+            builder: (_, __) => const AssessmentResultScreen(result: emergencyResult),
           ),
           GoRoute(
             path: Routes.emergency,
@@ -105,7 +105,7 @@ void main() {
     });
 
     testWidgets('AssessmentResult with aiStatus=unavailable renders degraded path guidance', (tester) async {
-      final degradedResult = const AssessmentResult(
+      const degradedResult = AssessmentResult(
         assessmentId: 'asm-deg-01',
         isEmergency: false,
         riskLevel: 'MODERATE',
@@ -116,7 +116,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: AssessmentResultScreen(result: degradedResult),
         ),
       );

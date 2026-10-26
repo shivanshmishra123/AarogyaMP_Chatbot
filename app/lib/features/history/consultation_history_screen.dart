@@ -135,10 +135,10 @@ class ConsultationHistoryScreen extends ConsumerWidget {
             child: const Icon(Icons.shield_outlined, color: AppColors.primary, size: 22),
           ),
           const SizedBox(width: 12),
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Row(
                   children: [
                     Text(

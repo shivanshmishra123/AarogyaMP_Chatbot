@@ -4,6 +4,44 @@
 
 ---
 
+## 2026-10-26 — Full Stack Gap Closures: Auth Profile, Single Doctor Lookup, Queue Vitals, & Zero-Warning Lint Pass
+
+**Who:** Person A, Person B & Person C (Integrated Session)
+
+**What was done:**
+- **Backend API & Schema Enhancements (`server/app/`)**:
+  - `GET /api/auth/me`: Added endpoint to fetch current authenticated user profile (`UserProfileResponse`), providing instant JWT validation and user profile restoration on app restart (includes name, role, phone, email, and doctor credentials/verification status).
+  - `GET /api/doctors/{id}`: Added single verified doctor lookup endpoint (`DoctorDetailResponse`), allowing direct doctor detail rendering and chat header hydration without requiring query scanning. Strictly blocks unverified doctors (returns 404).
+  - **Doctor Queue Vitals (`PatientQueueItem.vitals`)**: Added `VitalsOut` to `schemas.py` and joined `Vitals` in `GET /api/doctor/queue` (`consultations.py`). Doctors can now immediately view patient heart rate, blood pressure, temperature, and SpO2 in their queue cards to prioritize triage.
+  - **LLM Settings Default**: Removed duplicate `LLM_TIMEOUT_SECONDS` from `config.py` and set default `LLM_BASE_URL` to local Ollama (`http://ollama:11434/v1`, model `llama3.1:8b`).
+- **Frontend Doctor Dashboard & Model Alignment (`app/`)**:
+  - Added `QueueVitals` model to `app/lib/core/models/consultation_model.dart` with formatted `summaryText` (`Temp: X°F · HR: Y bpm · BP: S/D mmHg · SpO₂: Z%`).
+  - Updated `_LiveQueueCard` in `doctor_dashboard_screens.dart` to display real vitals summary chips.
+  - Updated `PatientDetailScreen` in `doctor_dashboard_screens.dart` to pass live patient vitals directly from `PatientQueueItem`.
+  - Resolved `use_build_context_synchronously` in `doctor_list_screen.dart` using pre-gap context capture and `context.mounted` verification.
+  - Resolved accidental `disposenatural()` typo in `patient_home_screen.dart`.
+  - Cleaned up all deprecated `withOpacity` usages and const lints across Flutter codebase.
+- **Verification & Test Coverage**:
+  - Pytest: **80 passed** (added `test_auth_me_endpoint`, `test_doctor_get_by_id`, and queue vitals verification in `test_person_a_m1.py`).
+  - Flutter tests: **16 passed** (added `PatientQueueItem` vitals parsing test in `m2_services_test.dart`).
+  - Flutter analyze: **0 issues found** across entire Flutter codebase.
+
+### 📌 Remaining Tasks for Teammates (Next Up)
+1. **Voice / Speech-to-Text Feature (Teammate focus)**:
+   - **Frontend UI Hooks**:
+     - `app/lib/features/symptom_intake/symptom_voice_input.dart` & `symptom_input_screens.dart`: Currently provides recording UI state and audio duration. Connect device microphone recorder (`record` / `flutter_sound`) to produce audio byte streams / WAV file or transcribe directly on-device using platform STT (`speech_to_text`).
+     - `app/lib/features/chat/voice_message_widget.dart`: Audio message playback widget in consultation chat. Connect audio player / recorder for doctor-patient voice messages.
+   - **Backend Audio Ingestion**:
+     - `server/app/config.py`: `STT_PROVIDER` defaults to `"device"`. If sending audio files to the server instead of on-device transcription, configure `whisper_api` or `local_whisper` endpoint.
+2. **Release Artifacts (Milestone 4)**:
+   - Build Android release APK: `cd app && flutter build apk --release` (generated under `app/build/app/outputs/flutter-apk/app-release.apk`).
+   - Run end-to-end integration demo against live Docker Ollama backend following `demo_guide.md`.
+3. **External Compliance Documentation (Reference §18)**:
+   - Define production credential verification protocol for `routers/admin.py` (replacing the temporary ops-token header).
+   - Record formal clinical sign-off for `server/app/data/emergency_rules.yaml`.
+
+
+
 ## 2026-10-26 — Fix: Urgency Check Connection Timeout & Local Ollama LLM Resilience Pass
 
 **Who:** Person B & Person C (AI Engine & App Resilience)

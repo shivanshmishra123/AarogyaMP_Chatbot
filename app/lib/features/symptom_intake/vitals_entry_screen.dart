@@ -256,10 +256,10 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
             child: const Icon(Icons.info_rounded, color: AppColors.primary, size: 20),
           ),
           const SizedBox(width: 12),
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'स्वास्थ्य माप / Vitals',
                   style: TextStyle(
@@ -318,8 +318,8 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: const [
+              const Row(
+                children: [
                   Icon(Icons.device_thermostat_rounded, color: AppColors.primary, size: 22),
                   SizedBox(width: 8),
                   Column(
@@ -472,8 +472,8 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: const [
+              const Row(
+                children: [
                   Icon(Icons.monitor_heart_rounded, color: AppColors.primary, size: 22),
                   SizedBox(width: 8),
                   Column(
@@ -639,8 +639,8 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: const [
+              const Row(
+                children: [
                   Icon(Icons.favorite_rounded, color: AppColors.primary, size: 22),
                   SizedBox(width: 8),
                   Column(
@@ -774,8 +774,8 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: const [
+              const Row(
+                children: [
                   Icon(Icons.air_rounded, color: AppColors.primary, size: 22),
                   SizedBox(width: 8),
                   Column(
@@ -920,8 +920,8 @@ class _VitalsEntryScreenState extends ConsumerState<VitalsEntryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: const [
+              const Row(
+                children: [
                   Icon(Icons.air_rounded, color: AppColors.primary, size: 22),
                   SizedBox(width: 8),
                   Column(

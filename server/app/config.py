@@ -26,11 +26,11 @@ class Settings(BaseSettings):
     STORAGE_DIR: str = "./storage"
     MAX_UPLOAD_MB: int = 25
 
-    # LLM — Groq (OpenAI-compatible)
-    LLM_BASE_URL: str = "https://api.groq.com/openai/v1"
-    LLM_API_KEY: str = ""
-    LLM_MODEL: str = "llama-3.3-70b-versatile"
-    LLM_TIMEOUT_SECONDS: int = 30
+    # LLM — defaults to local Ollama (llama3.1:8b); override via .env to use Groq or any OpenAI-compat provider
+    LLM_BASE_URL: str = "http://ollama:11434/v1"
+    LLM_API_KEY: str = "ollama"        # Ollama ignores this; Groq requires a real key
+    LLM_MODEL: str = "llama3.1:8b"
+    LLM_TIMEOUT_SECONDS: int = 75      # CPU inference can take 30-75s; keep above Flutter's 90s Dio timeout
 
     # STT
     STT_PROVIDER: str = "device"  # device | whisper_api | local_whisper

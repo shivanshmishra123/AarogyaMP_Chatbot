@@ -183,7 +183,7 @@ class AppTheme {
         hintStyle: TextStyle(
           fontFamily: 'NotoSans',
           fontSize: 14,
-          color: AppColors.onSurfaceVariant.withOpacity(0.7),
+          color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
         ),
       ),
 

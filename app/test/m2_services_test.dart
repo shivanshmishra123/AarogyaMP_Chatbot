@@ -45,6 +45,38 @@ void main() {
       expect(item.displayRiskLevel, 'UNKNOWN');
       expect(item.isEmergency, true);
       expect(item.timeAgoText, contains('hrs ago'));
+      expect(item.vitals, isNull);
+    });
+
+    test('parses attached vitals and generates summary text', () {
+      final json = {
+        'consultation_id': 'c-103',
+        'patient_name': 'Meera Bai',
+        'symptom_summary': 'High fever and cough',
+        'risk_level': 'MODERATE',
+        'is_emergency': false,
+        'started_at': DateTime.now().toIso8601String(),
+        'vitals': {
+          'temperature_f': 101.4,
+          'heart_rate_bpm': 92,
+          'systolic_bp': 120,
+          'diastolic_bp': 80,
+          'spo2_pct': 98,
+        },
+      };
+
+      final item = PatientQueueItem.fromJson(json);
+
+      expect(item.vitals, isNotNull);
+      expect(item.vitals!.temperatureF, 101.4);
+      expect(item.vitals!.heartRateBpm, 92);
+      expect(item.vitals!.systolicBp, 120);
+      expect(item.vitals!.diastolicBp, 80);
+      expect(item.vitals!.spo2Pct, 98);
+      expect(
+        item.vitals!.summaryText,
+        'Temp: 101.4°F · HR: 92 bpm · BP: 120/80 mmHg · SpO₂: 98%',
+      );
     });
   });
 

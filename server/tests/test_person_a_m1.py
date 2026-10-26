@@ -22,7 +22,7 @@ from sqlalchemy.pool import StaticPool
 from app.config import settings
 from app.database import Base, get_db
 from app.main import app
-from app.models import ChatMessage, Consultation, Doctor, Patient
+from app.models import ChatMessage, Consultation, Doctor, Patient, SymptomReport, Vitals
 from scripts.seed_doctors import seed_doctors
 
 # Setup test DB (isolated in-memory with StaticPool so all threads/sessions share it)
@@ -150,6 +150,40 @@ def test_auth_register_and_login_doctor(client):
     assert login_res.json()["role"] == "doctor"
 
 
+def test_auth_me_endpoint(client):
+    # Unauthenticated call fails
+    res_unauth = client.get("/api/auth/me")
+    assert res_unauth.status_code == 401
+
+    # Patient auth me
+    pat_res = client.post(
+        "/api/auth/register",
+        json={"name": "Aarav Sharma", "phone": "+91-9111122222", "password": "Pass@123", "role": "patient", "email": "aarav@test.com"},
+    )
+    pat_token = pat_res.json()["access_token"]
+    me_pat = client.get("/api/auth/me", headers={"Authorization": f"Bearer {pat_token}"})
+    assert me_pat.status_code == 200
+    pat_data = me_pat.json()
+    assert pat_data["name"] == "Aarav Sharma"
+    assert pat_data["role"] == "patient"
+    assert pat_data["email"] == "aarav@test.com"
+    assert pat_data["specialty"] is None
+
+    # Doctor auth me
+    doc_res = client.post(
+        "/api/auth/register",
+        json={"name": "Dr. Aarav Doctor", "phone": "+91-9111133333", "password": "Pass@123", "role": "doctor", "specialty": "Pediatrician", "qualification": "MBBS, DCH"},
+    )
+    doc_token = doc_res.json()["access_token"]
+    me_doc = client.get("/api/auth/me", headers={"Authorization": f"Bearer {doc_token}"})
+    assert me_doc.status_code == 200
+    doc_data = me_doc.json()
+    assert doc_data["name"] == "Dr. Aarav Doctor"
+    assert doc_data["role"] == "doctor"
+    assert doc_data["specialty"] == "Pediatrician"
+    assert doc_data["qualification"] == "MBBS, DCH"
+
+
 def test_doctor_search_filters(client):
     # Unverified doctor must NEVER be returned
     res = client.get("/api/doctors")
@@ -178,6 +212,25 @@ def test_doctor_search_filters(client):
     res_all_radius = client.get("/api/doctors?lat=23.2500&lng=77.4100&radius_km=20")
     all_radius_docs = res_all_radius.json()["doctors"]
     assert len(all_radius_docs) == 2
+
+
+def test_doctor_get_by_id(client):
+    # Verified doctor by ID succeeds
+    res = client.get("/api/doctors/doc_test_verified")
+    assert res.status_code == 200
+    doc = res.json()
+    assert doc["id"] == "doc_test_verified"
+    assert doc["name"] == "Dr. Verified Cardiologist"
+    assert doc["specialty"] == "Cardiologist"
+    assert doc["verification_status"] == "verified"
+
+    # Unverified doctor by ID returns 404 (strict privacy/safety)
+    res_unverified = client.get("/api/doctors/doc_test_unverified")
+    assert res_unverified.status_code == 404
+
+    # Non-existent doctor returns 404
+    res_404 = client.get("/api/doctors/does_not_exist")
+    assert res_404.status_code == 404
 
 
 def test_admin_doctor_verification(client):
@@ -252,6 +305,35 @@ def test_consultations_and_doctor_queue(client):
     assert len(queue) == 1
     assert queue[0]["consultation_id"] == consultation_id
     assert queue[0]["patient_name"] == "Patient A"
+    assert queue[0]["vitals"] is None
+
+    # Attach symptom report with vitals to verify queue returns vitals
+    db = TestingSessionLocal()
+    pat = db.query(Patient).filter(Patient.phone == "+91-1111111111").first()
+    sreport = SymptomReport(patient_id=pat.id, input_mode="text", raw_text="Severe chest tightness and palpitations")
+    db.add(sreport)
+    db.commit()
+    vitals = Vitals(
+        symptom_report_id=sreport.id,
+        temperature_f=99.2,
+        heart_rate_bpm=105,
+        systolic_bp=135,
+        diastolic_bp=88,
+        spo2_pct=97,
+    )
+    db.add(vitals)
+    consult = db.query(Consultation).filter(Consultation.id == consultation_id).first()
+    consult.symptom_report_id = sreport.id
+    db.commit()
+    db.close()
+
+    queue_res2 = client.get("/api/doctor/queue", headers={"Authorization": f"Bearer {doctor_token}"})
+    assert queue_res2.status_code == 200
+    queue2 = queue_res2.json()
+    assert queue2[0]["vitals"] is not None
+    assert queue2[0]["vitals"]["heart_rate_bpm"] == 105
+    assert queue2[0]["vitals"]["spo2_pct"] == 97
+    assert queue2[0]["vitals"]["temperature_f"] == 99.2
 
 
 def test_websocket_chat_and_persistence(client):

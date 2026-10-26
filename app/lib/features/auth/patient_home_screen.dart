@@ -33,11 +33,6 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
     );
   }
 
-  @override
-  void disposenatural() {
-    _pulseController.dispose();
-    super.dispose();
-  }
 
   @override
   void dispose() {
@@ -345,7 +340,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.primary.withOpacity(0.28),
+                                  color: AppColors.primary.withValues(alpha: 0.28),
                                   blurRadius: 24,
                                   spreadRadius: 6,
                                 ),
@@ -510,7 +505,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                     const SizedBox(height: 14),
 
                     // 4-Column Vitals Metric Preview Grid
-                    Row(
+                    const Row(
                       children: [
                         _VitalPill(
                           label: 'बीपी / BP',
@@ -518,21 +513,21 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen>
                           unit: 'mmHg',
                           color: AppColors.primary,
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         _VitalPill(
                           label: 'शुगर / Sugar',
                           value: '104',
                           unit: 'mg/dL',
                           color: AppColors.primary,
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         _VitalPill(
                           label: 'ऑक्सीजन',
                           value: '98%',
                           unit: 'सामान्य',
                           color: AppColors.primary,
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         _VitalPill(
                           label: 'ताप / Temp',
                           value: '98.4°',
@@ -954,7 +949,7 @@ class _VitalPill extends StatelessWidget {
                 fontFamily: 'NotoSans',
                 fontSize: 9,
                 fontWeight: FontWeight.w600,
-                color: color.withOpacity(0.85),
+                color: color.withValues(alpha: 0.85),
               ),
               textAlign: TextAlign.center,
             ),

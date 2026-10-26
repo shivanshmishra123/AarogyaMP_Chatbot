@@ -57,25 +57,25 @@ class RiskBadge extends StatelessWidget {
   _BadgeConfig _badgeConfig(String level) {
     switch (level.toUpperCase()) {
       case 'EMERGENCY':
-        return _BadgeConfig(
+        return const _BadgeConfig(
           text: AppColors.riskEmergencyText,
           bg: AppColors.riskEmergencyBg,
           border: AppColors.riskEmergencyBorder,
         );
       case 'HIGH':
-        return _BadgeConfig(
+        return const _BadgeConfig(
           text: AppColors.riskHighText,
           bg: AppColors.riskHighBg,
           border: AppColors.riskHighBorder,
         );
       case 'MODERATE':
-        return _BadgeConfig(
+        return const _BadgeConfig(
           text: AppColors.riskModerateText,
           bg: AppColors.riskModerateBg,
           border: AppColors.riskModerateBorder,
         );
       default: // LOW
-        return _BadgeConfig(
+        return const _BadgeConfig(
           text: AppColors.riskLowText,
           bg: AppColors.riskLowBg,
           border: AppColors.riskLowBorder,
@@ -350,7 +350,7 @@ class _StitchHeaderState extends State<StitchHeader> {
       height: 64,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: AppColors.surface.withOpacity(0.95),
+        color: AppColors.surface.withValues(alpha: 0.95),
         border: const Border(bottom: BorderSide(color: AppColors.surfaceBorder, width: 1)),
         boxShadow: const [
           BoxShadow(
